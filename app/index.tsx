@@ -1,6 +1,8 @@
-import { Text, View } from "react-native";
+import { Text, View, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function Index() {
+  const router = useRouter();
   return (
     <View
       style={{
@@ -10,6 +12,9 @@ export default function Index() {
       }}
     >
       <Text>Edit app/index.tsx to edit this screen.</Text>
+      <TouchableOpacity
+        onPress={() => router.push("/game")}
+      ><Text>Start</Text></TouchableOpacity>
     </View>
   );
 }
