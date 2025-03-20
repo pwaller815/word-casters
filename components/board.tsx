@@ -7,8 +7,9 @@ import boardStyles from "@/styles/boardStyles";
 export default function Board() {
   const [letters, setLetters] = useState<string[]>([]);
   const [currentString, setCurrentString] = useState<string>("");
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+  const [longPressed, setLongPressed] = useState<number>(-1);
 
   const die = [
     ["S", "R", "E", "L", "A", "C"],
@@ -92,30 +93,43 @@ export default function Board() {
     }
   };
 
-  const handleGesture = Gesture.Pan()
+  const longPress = Gesture.LongPress()
+    .minDuration(1)
     .onBegin((event) => {
-      const { x, y } = event;
-      const index = getLetterIndex(x, y);
-      addLetter(index);
+      setLongPressed(getLetterIndex(event.x, event.y));
     })
+    .onEnd(() => {
+      setLongPressed(-1);
+    })
+    .runOnJS(true);
+
+  const pan = Gesture.Pan().minDistance(5)
     .onUpdate((event) => {
       const { x, y } = event;
-      const index = getNextLetterIndex(x, y);
+      let index;
+      if (currentIndex === -1) {
+        index = getLetterIndex(x, y);
+      } else {
+        index = getNextLetterIndex(x, y);
+      }
+
       if (index !== -1) {
         addLetter(index);
       }
     })
     .onEnd(() => {
-      console.log("Selected word:" + currentString);
+      setCurrentIndex(-1);
       setCurrentString("");
       setSelectedIndices([]);
     })
     .runOnJS(true);
 
+  const handleGesture = Gesture.Simultaneous(longPress, pan);
+
   return (
     <View style={boardStyles.board}>
-      <View>
-        <Text>{currentString}</Text>
+      <View style={boardStyles.currentStringContainer}>
+        <Text style={boardStyles.currentString}>{currentString}</Text>
       </View>
       <View style={boardStyles.gridBoard}>
         <GestureDetector gesture={handleGesture}>
@@ -127,7 +141,8 @@ export default function Board() {
                   key={index}
                   style={[
                     boardStyles.gridItem,
-                    isDragged && boardStyles.activeGridItem,
+                    (isDragged || longPressed === index) &&
+                      boardStyles.activeGridItem,
                   ]}
                 >
                   <Text style={boardStyles.letter}>{character}</Text>

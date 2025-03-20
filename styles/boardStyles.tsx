@@ -11,6 +11,15 @@ export default StyleSheet.create({
         alignItems: "center",
         backgroundColor: colors.background,
     },
+    currentStringContainer: {
+        width: 200,
+        height: 100,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    currentString: {
+        fontSize: 25,
+    },
     gridBoard: {
         width: 334,
         height: 334,
