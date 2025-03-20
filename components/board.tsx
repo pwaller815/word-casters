@@ -7,9 +7,8 @@ import boardStyles from "@/styles/boardStyles";
 export default function Board() {
   const [letters, setLetters] = useState<string[]>([]);
   const [currentString, setCurrentString] = useState<string>("");
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(
-    new Set()
-  );
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
 
   const die = [
     ["S", "R", "E", "L", "A", "C"],
@@ -55,20 +54,40 @@ export default function Board() {
 
   const getLetterIndex = (x: number, y: number) => {
     const gridWidth = 4;
-    const letterWidth = 82.5;
-    const letterHeight = 82.5;
+    const letterSize = 78.5;
 
-    const xIndex = Math.floor((x + letterWidth / 2) / letterWidth);
-    const yIndex = Math.floor((y + letterHeight / 2) / letterHeight);
+    const xIndex = Math.floor(x / letterSize);
+    const yIndex = Math.floor(y / letterSize);
     const index = yIndex * gridWidth + xIndex;
 
     return index >= 0 && index < letters.length ? index : -1;
   };
 
+  const getNextLetterIndex = (x: number, y: number) => {
+    const gridWidth = 4;
+    const letterSize = 78.5;
+
+    const currentX = (currentIndex % gridWidth) * letterSize + letterSize / 2;
+    const currentY =
+      Math.floor(currentIndex / gridWidth) * letterSize + letterSize / 2;
+
+    const threshold =
+      Math.abs(Math.abs(x - currentX) - Math.abs(y - currentY)) <= 30
+        ? 0.9
+        : 0.6;
+
+    const dx = Math.abs(x - currentX);
+    const dy = Math.abs(y - currentY);
+
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    return distance > letterSize * threshold ? getLetterIndex(x, y) : -1;
+  };
+
   const addLetter = (index: number) => {
-    if (!selectedIndices.has(index)) {
-      selectedIndices.add(index);
-      setSelectedIndices(new Set(selectedIndices));
+    if (!selectedIndices.includes(index)) {
+      setCurrentIndex(index);
+      setSelectedIndices([...selectedIndices, index]);
       setCurrentString((prev) => prev + letters[index]);
     }
   };
@@ -77,13 +96,11 @@ export default function Board() {
     .onBegin((event) => {
       const { x, y } = event;
       const index = getLetterIndex(x, y);
-      if (index !== -1) {
-        addLetter(index);
-      }
+      addLetter(index);
     })
     .onUpdate((event) => {
       const { x, y } = event;
-      const index = getLetterIndex(x, y);
+      const index = getNextLetterIndex(x, y);
       if (index !== -1) {
         addLetter(index);
       }
@@ -91,24 +108,35 @@ export default function Board() {
     .onEnd(() => {
       console.log("Selected word:" + currentString);
       setCurrentString("");
-      setSelectedIndices(new Set());
+      setSelectedIndices([]);
     })
     .runOnJS(true);
 
   return (
     <View style={boardStyles.board}>
-      <GestureDetector gesture={handleGesture}>
-        <View style={boardStyles.gridBoard}>
-          {letters.map((character: string, index: number) => {
-            const isDragged = selectedIndices.has(index);
-            return (
-              <View key={index} style={[boardStyles.gridItem, isDragged && boardStyles.activeGridItem]}>
-                <Text style={boardStyles.letter}>{character}</Text>
-              </View>
-            );
-          })}
-        </View>
-      </GestureDetector>
+      <View>
+        <Text>{currentString}</Text>
+      </View>
+      <View style={boardStyles.gridBoard}>
+        <GestureDetector gesture={handleGesture}>
+          <View style={boardStyles.gridItems}>
+            {letters.map((character: string, index: number) => {
+              const isDragged = selectedIndices.includes(index);
+              return (
+                <View
+                  key={index}
+                  style={[
+                    boardStyles.gridItem,
+                    isDragged && boardStyles.activeGridItem,
+                  ]}
+                >
+                  <Text style={boardStyles.letter}>{character}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </GestureDetector>
+      </View>
     </View>
   );
 }
