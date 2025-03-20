@@ -1,8 +1,7 @@
 import { StyleSheet } from "react-native";
 import colors from "./colors";
 
-// (Gridboard width) - (Gridboard borderWidth * 2) - (gap * 3) - (padding * 2)
-const itemWidth = (330 - 20 - 9 - 10) / 4;
+const itemWidth = (330 - 23 - 10) / 4;
 
 export default StyleSheet.create({
     board: {
@@ -15,7 +14,7 @@ export default StyleSheet.create({
     gridBoard: {
         flexDirection: "row",
         flexWrap: "wrap",
-        gap: 3,
+        gap: 1,
         padding: 5,
         width: 330,
         height: 330,
@@ -33,6 +32,9 @@ export default StyleSheet.create({
         borderWidth: 3,
         borderColor: colors.border,
         borderRadius: 10,
+    },
+    activeGridItem: {
+        backgroundColor: "lime",
     },
     letter: {
         fontSize: 55,
