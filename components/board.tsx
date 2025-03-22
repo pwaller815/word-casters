@@ -1,13 +1,14 @@
-import { Text, View, TouchableOpacity } from "react-native";
-import { useEffect, useState } from "react";
+import { Text, View } from "react-native";
+import { useEffect, useState, useRef } from "react";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
-import { runOnJS } from "react-native-reanimated";
 import boardStyles from "@/styles/boardStyles";
 
 export default function Board() {
   const [letters, setLetters] = useState<string[]>([]);
   const [currentString, setCurrentString] = useState<string>("");
-  const [currentIndex, setCurrentIndex] = useState<number>(-1);
+
+  const currentIndexRef = useRef<number>(-1);
+  
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [longPressed, setLongPressed] = useState<number>(-1);
 
@@ -68,9 +69,9 @@ export default function Board() {
     const gridWidth = 4;
     const letterSize = 78.5;
 
-    const currentX = (currentIndex % gridWidth) * letterSize + letterSize / 2;
+    const currentX = (currentIndexRef.current % gridWidth) * letterSize + letterSize / 2;
     const currentY =
-      Math.floor(currentIndex / gridWidth) * letterSize + letterSize / 2;
+      Math.floor(currentIndexRef.current / gridWidth) * letterSize + letterSize / 2;
 
     const threshold =
       Math.abs(Math.abs(x - currentX) - Math.abs(y - currentY)) <= 30
@@ -81,13 +82,27 @@ export default function Board() {
     const dy = Math.abs(y - currentY);
 
     const distance = Math.sqrt(dx * dx + dy * dy);
+    const index = getLetterIndex(x, y);
 
-    return distance > letterSize * threshold ? getLetterIndex(x, y) : -1;
+    return x < letterSize * gridWidth &&
+      isNeighbor(index) &&
+      distance > letterSize * threshold
+      ? index
+      : -1;
+  };
+
+  const isNeighbor = (index: number) => {
+    const rowDiff = Math.abs(
+      Math.floor(currentIndexRef.current / 4) - Math.floor(index / 4)
+    );
+    const colDiff = Math.abs((currentIndexRef.current % 4) - (index % 4));
+
+    return rowDiff <= 1 && colDiff <= 1 && rowDiff + colDiff > 0;
   };
 
   const addLetter = (index: number) => {
     if (!selectedIndices.includes(index)) {
-      setCurrentIndex(index);
+      currentIndexRef.current = index;
       setSelectedIndices([...selectedIndices, index]);
       setCurrentString((prev) => prev + letters[index]);
     }
@@ -103,13 +118,16 @@ export default function Board() {
     })
     .runOnJS(true);
 
-  const pan = Gesture.Pan().minDistance(5)
+  const pan = Gesture.Pan()
+    .minDistance(5)
     .onUpdate((event) => {
       const { x, y } = event;
       let index;
-      if (currentIndex === -1) {
+      if (currentIndexRef.current === -1) {
+        console.log("Begin: " + currentIndexRef.current);
         index = getLetterIndex(x, y);
       } else {
+        console.log("Continue: " + currentIndexRef.current);
         index = getNextLetterIndex(x, y);
       }
 
@@ -118,7 +136,7 @@ export default function Board() {
       }
     })
     .onEnd(() => {
-      setCurrentIndex(-1);
+      currentIndexRef.current = -1;
       setCurrentString("");
       setSelectedIndices([]);
     })
