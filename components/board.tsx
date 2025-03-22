@@ -8,7 +8,7 @@ export default function Board() {
   const [currentString, setCurrentString] = useState<string>("");
 
   const currentIndexRef = useRef<number>(-1);
-  
+
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [longPressed, setLongPressed] = useState<number>(-1);
 
@@ -69,9 +69,11 @@ export default function Board() {
     const gridWidth = 4;
     const letterSize = 78.5;
 
-    const currentX = (currentIndexRef.current % gridWidth) * letterSize + letterSize / 2;
+    const currentX =
+      (currentIndexRef.current % gridWidth) * letterSize + letterSize / 2;
     const currentY =
-      Math.floor(currentIndexRef.current / gridWidth) * letterSize + letterSize / 2;
+      Math.floor(currentIndexRef.current / gridWidth) * letterSize +
+      letterSize / 2;
 
     const threshold =
       Math.abs(Math.abs(x - currentX) - Math.abs(y - currentY)) <= 30
@@ -85,6 +87,7 @@ export default function Board() {
     const index = getLetterIndex(x, y);
 
     return x < letterSize * gridWidth &&
+      x > 0 &&
       isNeighbor(index) &&
       distance > letterSize * threshold
       ? index
