@@ -8,6 +8,7 @@ export default function Board() {
   const [currentString, setCurrentString] = useState<string>("");
 
   const currentIndexRef = useRef<number>(-1);
+  const firstIndexRef = useRef<number>(-1);
 
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [longPressed, setLongPressed] = useState<number>(-1);
@@ -123,14 +124,16 @@ export default function Board() {
 
   const pan = Gesture.Pan()
     .minDistance(5)
+    .onBegin((event) => {
+      const { x, y } = event;
+      firstIndexRef.current = getLetterIndex(x, y);
+    })
     .onUpdate((event) => {
       const { x, y } = event;
       let index;
       if (currentIndexRef.current === -1) {
-        console.log("Begin: " + currentIndexRef.current);
-        index = getLetterIndex(x, y);
+        index = firstIndexRef.current;
       } else {
-        console.log("Continue: " + currentIndexRef.current);
         index = getNextLetterIndex(x, y);
       }
 
