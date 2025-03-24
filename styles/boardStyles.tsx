@@ -46,7 +46,10 @@ export default StyleSheet.create({
         borderColor: colors.border,
         borderRadius: 10,
     },
-    activeGridItem: {
+    activeGridItemIncorrect: {
+        backgroundColor: "red",
+    },
+    activeGridItemCorrect: {
         backgroundColor: "lime",
     },
     letter: {

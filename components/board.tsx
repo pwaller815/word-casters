@@ -1,16 +1,19 @@
 import { Text, View } from "react-native";
 import { useEffect, useState, useRef } from "react";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import { isWordValid } from "@/database/populateDatabase";
 import boardStyles from "@/styles/boardStyles";
 
 export default function Board() {
   const [letters, setLetters] = useState<string[]>([]);
   const [currentString, setCurrentString] = useState<string>("");
+  const [validity, setValidity] = useState<boolean>(false);
 
   const currentIndexRef = useRef<number>(-1);
   const firstIndexRef = useRef<number>(-1);
+  const selectedIndicesRef = useRef<number[]>([]);
+  const currentStringRef = useRef<string>("");
 
-  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [longPressed, setLongPressed] = useState<number>(-1);
 
   const die = [
@@ -104,11 +107,16 @@ export default function Board() {
     return rowDiff <= 1 && colDiff <= 1 && rowDiff + colDiff > 0;
   };
 
-  const addLetter = (index: number) => {
-    if (!selectedIndices.includes(index)) {
+  const addLetter = async (index: number) => {
+    if (!selectedIndicesRef.current.includes(index)) {
       currentIndexRef.current = index;
-      setSelectedIndices([...selectedIndices, index]);
-      setCurrentString((prev) => prev + letters[index]);
+      selectedIndicesRef.current.push(index);
+
+      currentStringRef.current = currentStringRef.current + letters[index];
+      setCurrentString(currentStringRef.current);
+      if (currentStringRef.current.length >= 3) {
+        setValidity(await isWordValid(currentStringRef.current.toLowerCase()));
+      }
     }
   };
 
@@ -127,6 +135,8 @@ export default function Board() {
     .onBegin((event) => {
       const { x, y } = event;
       firstIndexRef.current = getLetterIndex(x, y);
+      console.log("Begin:");
+      console.log(x, y);
     })
     .onUpdate((event) => {
       const { x, y } = event;
@@ -136,6 +146,7 @@ export default function Board() {
       } else {
         index = getNextLetterIndex(x, y);
       }
+      console.log(x, y);
 
       if (index !== -1) {
         addLetter(index);
@@ -143,8 +154,10 @@ export default function Board() {
     })
     .onEnd(() => {
       currentIndexRef.current = -1;
+      selectedIndicesRef.current = [];
+      currentStringRef.current = "";
       setCurrentString("");
-      setSelectedIndices([]);
+      setValidity(false);
     })
     .runOnJS(true);
 
@@ -159,14 +172,16 @@ export default function Board() {
         <GestureDetector gesture={handleGesture}>
           <View style={boardStyles.gridItems}>
             {letters.map((character: string, index: number) => {
-              const isDragged = selectedIndices.includes(index);
+              const isDragged = selectedIndicesRef.current.includes(index);
               return (
                 <View
                   key={index}
                   style={[
                     boardStyles.gridItem,
-                    (isDragged || longPressed === index) &&
-                      boardStyles.activeGridItem,
+                    (!validity && isDragged || longPressed === index) &&
+                      boardStyles.activeGridItemIncorrect,
+                    (validity && isDragged) &&
+                      boardStyles.activeGridItemCorrect,
                   ]}
                 >
                   <Text style={boardStyles.letter}>{character}</Text>
