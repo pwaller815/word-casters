@@ -1,10 +1,13 @@
 import { Text, View } from "react-native";
 import { useEffect, useState, useRef } from "react";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
-import { isWordValid } from "@/database/populateDatabase";
+import isWordValid from "@/database/isWordValid";
 import boardStyles from "@/styles/boardStyles";
+import * as SQLite from "expo-sqlite";
 
 export default function Board() {
+  const db = useRef<SQLite.SQLiteDatabase | null>(null);
+
   const [letters, setLetters] = useState<string[]>([]);
   const [currentString, setCurrentString] = useState<string>("");
   const [validity, setValidity] = useState<boolean>(false);
@@ -53,7 +56,12 @@ export default function Board() {
   }
 
   useEffect(() => {
+    const openConnection = async () => {
+      db.current = await SQLite.openDatabaseAsync("dictionary.db");
+    };
+
     if (letters.length === 0) {
+      openConnection();
       generateBoard();
     }
   }, []);
@@ -115,7 +123,13 @@ export default function Board() {
       currentStringRef.current = currentStringRef.current + letters[index];
       setCurrentString(currentStringRef.current);
       if (currentStringRef.current.length >= 3) {
-        setValidity(await isWordValid(currentStringRef.current.toLowerCase()));
+        if (db.current != null)
+          setValidity(
+            await isWordValid(
+              db.current,
+              currentStringRef.current.toLowerCase()
+            )
+          );
       }
     }
   };
@@ -178,10 +192,9 @@ export default function Board() {
                   key={index}
                   style={[
                     boardStyles.gridItem,
-                    (!validity && isDragged || longPressed === index) &&
+                    ((!validity && isDragged) || longPressed === index) &&
                       boardStyles.activeGridItemIncorrect,
-                    (validity && isDragged) &&
-                      boardStyles.activeGridItemCorrect,
+                    validity && isDragged && boardStyles.activeGridItemCorrect,
                   ]}
                 >
                   <Text style={boardStyles.letter}>{character}</Text>
