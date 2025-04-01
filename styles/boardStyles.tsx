@@ -11,6 +11,16 @@ export default StyleSheet.create({
         alignItems: "center",
         backgroundColor: colors.background,
     },
+    timerContainer: {
+        width: 200,
+        height: 100,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    timer: {
+        color: "white",
+        fontSize: 40,
+    },
     currentStringContainer: {
         width: 200,
         height: 100,
@@ -51,6 +61,9 @@ export default StyleSheet.create({
     },
     activeGridItemCorrect: {
         backgroundColor: "lime",
+    },
+    alreadyFound: {
+        backgroundColor: "orange",
     },
     letter: {
         fontSize: 55,

@@ -11,11 +11,15 @@ export default function Board() {
   const [letters, setLetters] = useState<string[]>([]);
   const [currentString, setCurrentString] = useState<string>("");
   const [validity, setValidity] = useState<boolean>(false);
+  const [alreadyFound, setAlreadyFound] = useState<boolean>(false);
+  const [timer, setTimer] = useState<number>(30);
 
   const currentIndexRef = useRef<number>(-1);
   const firstIndexRef = useRef<number>(-1);
   const selectedIndicesRef = useRef<number[]>([]);
   const currentStringRef = useRef<string>("");
+  const timerRef = useRef<number>(0);
+  const wordsFoundRef = useRef<string[]>([]);
 
   const [longPressed, setLongPressed] = useState<number>(-1);
 
@@ -60,10 +64,27 @@ export default function Board() {
       db.current = await SQLite.openDatabaseAsync("dictionary.db");
     };
 
+    const startTimer = () => {
+      if (timerRef.current > 0) return; // Prevent multiple timers
+
+      timerRef.current = 30;
+
+      let timerInterval = setInterval(() => {
+        if (timerRef.current > 0) {
+          timerRef.current -= 1;
+          setTimer(timerRef.current);
+        } else {
+          clearInterval(timerInterval);
+        }
+      }, 1000);
+    };
+
     if (letters.length === 0) {
       openConnection();
       generateBoard();
     }
+
+    startTimer();
   }, []);
 
   const getLetterIndex = (x: number, y: number) => {
@@ -123,15 +144,44 @@ export default function Board() {
       currentStringRef.current = currentStringRef.current + letters[index];
       setCurrentString(currentStringRef.current);
       if (currentStringRef.current.length >= 3) {
-        if (db.current != null)
+        if (db.current != null) {
+          setAlreadyFound(
+            wordsFoundRef.current.includes(currentStringRef.current)
+          );
           setValidity(
             await isWordValid(
               db.current,
               currentStringRef.current.toLowerCase()
             )
           );
+        }
       }
     }
+  };
+
+  const evaluateWord = (word: string) => {
+    const length = word.length;
+    let additionalTime = 0;
+
+    switch (length) {
+      case 3:
+        additionalTime = 2;
+        break;
+      case 4:
+        additionalTime = 3;
+        break;
+      case 5:
+        additionalTime = 4;
+        break;
+      case 6:
+        additionalTime = 6;
+        break;
+      default:
+        additionalTime = 10;
+    }
+
+    timerRef.current += additionalTime;
+    setTimer(timerRef.current);
   };
 
   const longPress = Gesture.LongPress()
@@ -160,18 +210,22 @@ export default function Board() {
       } else {
         index = getNextLetterIndex(x, y);
       }
-      console.log(x, y);
 
       if (index !== -1) {
         addLetter(index);
       }
     })
     .onEnd(() => {
+      if (validity) {
+        evaluateWord(currentStringRef.current);
+        wordsFoundRef.current.push(currentStringRef.current);
+      }
       currentIndexRef.current = -1;
       selectedIndicesRef.current = [];
       currentStringRef.current = "";
       setCurrentString("");
       setValidity(false);
+      setAlreadyFound(false);
     })
     .runOnJS(true);
 
@@ -179,6 +233,9 @@ export default function Board() {
 
   return (
     <View style={boardStyles.board}>
+      <View style={boardStyles.timerContainer}>
+        <Text style={boardStyles.timer}>{timer}</Text>
+      </View>
       <View style={boardStyles.currentStringContainer}>
         <Text style={boardStyles.currentString}>{currentString}</Text>
       </View>
@@ -192,9 +249,12 @@ export default function Board() {
                   key={index}
                   style={[
                     boardStyles.gridItem,
-                    ((!validity && isDragged) || longPressed === index) &&
-                      boardStyles.activeGridItemIncorrect,
-                    validity && isDragged && boardStyles.activeGridItemCorrect,
+                    isDragged &&
+                      (!validity || longPressed === index
+                        ? boardStyles.activeGridItemIncorrect
+                        : alreadyFound
+                        ? boardStyles.alreadyFound
+                        : boardStyles.activeGridItemCorrect),
                   ]}
                 >
                   <Text style={boardStyles.letter}>{character}</Text>
