@@ -4,6 +4,7 @@ import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import isWordValid from "@/database/isWordValid";
 import boardStyles from "@/styles/boardStyles";
 import * as SQLite from "expo-sqlite";
+import { useRouter } from "expo-router";
 
 export default function Board() {
   const db = useRef<SQLite.SQLiteDatabase | null>(null);
@@ -12,16 +13,19 @@ export default function Board() {
   const [currentString, setCurrentString] = useState<string>("");
   const [validity, setValidity] = useState<boolean>(false);
   const [alreadyFound, setAlreadyFound] = useState<boolean>(false);
-  const [timer, setTimer] = useState<number>(30);
+  const [timer, setTimer] = useState<number>(10);
 
   const currentIndexRef = useRef<number>(-1);
   const firstIndexRef = useRef<number>(-1);
   const selectedIndicesRef = useRef<number[]>([]);
   const currentStringRef = useRef<string>("");
   const timerRef = useRef<number>(0);
+  const totalTimeRef = useRef<number>(0);
   const wordsFoundRef = useRef<string[]>([]);
 
   const [longPressed, setLongPressed] = useState<number>(-1);
+
+  const router = useRouter();
 
   const die = [
     ["S", "R", "E", "L", "A", "C"],
@@ -65,16 +69,24 @@ export default function Board() {
     };
 
     const startTimer = () => {
-      if (timerRef.current > 0) return; // Prevent multiple timers
+      if (timerRef.current > 0) return;
 
-      timerRef.current = 30;
+      timerRef.current = 10;
 
       let timerInterval = setInterval(() => {
         if (timerRef.current > 0) {
           timerRef.current -= 1;
+          totalTimeRef.current += 1;
           setTimer(timerRef.current);
         } else {
           clearInterval(timerInterval);
+          router.push({
+            pathname: "/result",
+            params: {
+              wordsString: JSON.stringify(wordsFoundRef.current),
+              // totalTime: totalTimeRef.current,
+            },
+          });
         }
       }, 1000);
     };
@@ -219,6 +231,7 @@ export default function Board() {
       if (validity) {
         evaluateWord(currentStringRef.current);
         wordsFoundRef.current.push(currentStringRef.current);
+        console.log(wordsFoundRef.current[0]);
       }
       currentIndexRef.current = -1;
       selectedIndicesRef.current = [];

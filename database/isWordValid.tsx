@@ -10,7 +10,7 @@ export default async function isWordValid(
       word
     );
     console.log(result);
-    if (result === null) return false;
+    if (result === null || word.length < 3) return false;
     return true;
   } catch (error) {
     console.log("Error checking if word is valid: ", error);
