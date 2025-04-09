@@ -27,7 +27,11 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView>
-      <Stack />
+      <Stack 
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
     </GestureHandlerRootView>
   );
 }

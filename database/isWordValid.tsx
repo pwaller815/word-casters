@@ -9,7 +9,6 @@ export default async function isWordValid(
       "SELECT * FROM words WHERE word = ?",
       word
     );
-    console.log(result);
     if (result === null || word.length < 3) return false;
     return true;
   } catch (error) {

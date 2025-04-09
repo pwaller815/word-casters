@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Animated, Text, View } from "react-native";
 import { useEffect, useState, useRef } from "react";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import isWordValid from "@/database/isWordValid";
@@ -11,6 +11,7 @@ export default function Board() {
 
   const [letters, setLetters] = useState<string[]>([]);
   const [currentString, setCurrentString] = useState<string>("");
+  const [prevString, setPrevString] = useState<string>("");
   const [validity, setValidity] = useState<boolean>(false);
   const [alreadyFound, setAlreadyFound] = useState<boolean>(false);
   const [timer, setTimer] = useState<number>(10);
@@ -22,8 +23,40 @@ export default function Board() {
   const timerRef = useRef<number>(0);
   const totalTimeRef = useRef<number>(0);
   const wordsFoundRef = useRef<string[]>([]);
+  const isDraggingRef = useRef<boolean>(false);
 
   const [longPressed, setLongPressed] = useState<number>(-1);
+
+  const letterScales = useRef(new Map<number, Animated.Value>());
+  const fade = useRef(new Animated.Value(1)).current;
+
+  const fadeOut = () => {
+    fade.setValue(1);
+    Animated.timing(fade, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }
+
+  const scaleUp = (index: number) => {
+    if (!letterScales.current.has(index)) {
+      letterScales.current.set(index, new Animated.Value(1));
+    }
+
+    Animated.timing(letterScales.current.get(index)!, {
+      toValue: 1.08,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const scaleDown = () => {
+    if (isDraggingRef.current) return;
+    letterScales.current.forEach((scale) => {
+      scale.setValue(1);
+    });
+  };
 
   const router = useRouter();
 
@@ -71,7 +104,7 @@ export default function Board() {
     const startTimer = () => {
       if (timerRef.current > 0) return;
 
-      timerRef.current = 10;
+      timerRef.current = 100;
 
       let timerInterval = setInterval(() => {
         if (timerRef.current > 0) {
@@ -80,13 +113,6 @@ export default function Board() {
           setTimer(timerRef.current);
         } else {
           clearInterval(timerInterval);
-          router.push({
-            pathname: "/result",
-            params: {
-              wordsString: JSON.stringify(wordsFoundRef.current),
-              // totalTime: totalTimeRef.current,
-            },
-          });
         }
       }, 1000);
     };
@@ -107,7 +133,12 @@ export default function Board() {
     const yIndex = Math.floor(y / letterSize);
     const index = yIndex * gridWidth + xIndex;
 
-    return index >= 0 && index < letters.length ? index : -1;
+    return x < letterSize * gridWidth &&
+      x > 0 &&
+      index >= 0 &&
+      index < letters.length
+      ? index
+      : -1;
   };
 
   const getNextLetterIndex = (x: number, y: number) => {
@@ -199,10 +230,13 @@ export default function Board() {
   const longPress = Gesture.LongPress()
     .minDuration(1)
     .onBegin((event) => {
-      setLongPressed(getLetterIndex(event.x, event.y));
+      const index = getLetterIndex(event.x, event.y);
+      setLongPressed(index);
+      scaleUp(index);
     })
     .onEnd(() => {
       setLongPressed(-1);
+      scaleDown();
     })
     .runOnJS(true);
 
@@ -211,10 +245,9 @@ export default function Board() {
     .onBegin((event) => {
       const { x, y } = event;
       firstIndexRef.current = getLetterIndex(x, y);
-      console.log("Begin:");
-      console.log(x, y);
     })
     .onUpdate((event) => {
+      isDraggingRef.current = true;
       const { x, y } = event;
       let index;
       if (currentIndexRef.current === -1) {
@@ -225,16 +258,23 @@ export default function Board() {
 
       if (index !== -1) {
         addLetter(index);
+        scaleUp(index);
       }
     })
     .onEnd(() => {
-      if (validity) {
+      isDraggingRef.current = false;
+      scaleDown();
+      if (validity && !alreadyFound) {
         evaluateWord(currentStringRef.current);
         wordsFoundRef.current.push(currentStringRef.current);
-        console.log(wordsFoundRef.current[0]);
       }
+      letterScales.current = new Map<number, Animated.Value>();
       currentIndexRef.current = -1;
       selectedIndicesRef.current = [];
+
+      setPrevString(currentStringRef.current);
+      fadeOut();
+
       currentStringRef.current = "";
       setCurrentString("");
       setValidity(false);
@@ -244,34 +284,56 @@ export default function Board() {
 
   const handleGesture = Gesture.Simultaneous(longPress, pan);
 
+  const determineColor = () => {
+    if (!validity) {
+      return boardStyles.activeGridItemIncorrect;
+    } else if (alreadyFound) {
+      return boardStyles.alreadyFound;
+    } else {
+      return boardStyles.activeGridItemCorrect;
+    }
+  }
+
   return (
     <View style={boardStyles.board}>
       <View style={boardStyles.timerContainer}>
         <Text style={boardStyles.timer}>{timer}</Text>
       </View>
       <View style={boardStyles.currentStringContainer}>
-        <Text style={boardStyles.currentString}>{currentString}</Text>
+        {currentString !== "" && (
+          <Text style={[boardStyles.currentString, determineColor()]}>{currentString}</Text>
+        )}
+        <Animated.Text style={[boardStyles.prevString, determineColor(), { opacity: fade}]}>{prevString}</Animated.Text>
       </View>
       <View style={boardStyles.gridBoard}>
         <GestureDetector gesture={handleGesture}>
           <View style={boardStyles.gridItems}>
             {letters.map((character: string, index: number) => {
-              const isDragged = selectedIndicesRef.current.includes(index);
+              const selected =
+                selectedIndicesRef.current.includes(index) ||
+                longPressed === index;
+              const animatedStyle = selected
+                ? {
+                    transform: [
+                      {
+                        scale:
+                          letterScales.current.get(index) ||
+                          new Animated.Value(1),
+                      },
+                    ],
+                  }
+                : {};
               return (
-                <View
+                <Animated.View
                   key={index}
                   style={[
+                    animatedStyle,
                     boardStyles.gridItem,
-                    isDragged &&
-                      (!validity || longPressed === index
-                        ? boardStyles.activeGridItemIncorrect
-                        : alreadyFound
-                        ? boardStyles.alreadyFound
-                        : boardStyles.activeGridItemCorrect),
+                    selected && determineColor(),
                   ]}
                 >
                   <Text style={boardStyles.letter}>{character}</Text>
-                </View>
+                </Animated.View>
               );
             })}
           </View>
