@@ -15,6 +15,7 @@ export default function Board() {
   const [validity, setValidity] = useState<boolean>(false);
   const [alreadyFound, setAlreadyFound] = useState<boolean>(false);
   const [timer, setTimer] = useState<number>(10);
+  const [addedTime, setAddedTime] = useState<number>(0);
 
   const currentIndexRef = useRef<number>(-1);
   const firstIndexRef = useRef<number>(-1);
@@ -24,20 +25,42 @@ export default function Board() {
   const totalTimeRef = useRef<number>(0);
   const wordsFoundRef = useRef<string[]>([]);
   const isDraggingRef = useRef<boolean>(false);
+  const prevColorRef = useRef<object>({});
 
   const [longPressed, setLongPressed] = useState<number>(-1);
 
   const letterScales = useRef(new Map<number, Animated.Value>());
-  const fade = useRef(new Animated.Value(1)).current;
+  const fadeString = useRef(new Animated.Value(1)).current;
+  const fadeAddedTime = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  const moveUpAndFade = () => {
+    translateY.setValue(0);
+    fadeAddedTime.setValue(1);
+
+    const translateYAnimation = Animated.timing(translateY, {
+      toValue: -50,
+      duration: 500,
+      useNativeDriver: true,
+    });
+
+    const fadeAddedTimeAnimation = Animated.timing(fadeAddedTime, {
+      toValue: 0,
+      duration: 700,
+      useNativeDriver: true,
+    });
+
+    Animated.parallel([translateYAnimation, fadeAddedTimeAnimation]).start();
+  };
 
   const fadeOut = () => {
-    fade.setValue(1);
-    Animated.timing(fade, {
+    fadeString.setValue(1);
+    Animated.timing(fadeString, {
       toValue: 0,
       duration: 300,
       useNativeDriver: true,
     }).start();
-  }
+  };
 
   const scaleUp = (index: number) => {
     if (!letterScales.current.has(index)) {
@@ -223,6 +246,8 @@ export default function Board() {
         additionalTime = 10;
     }
 
+    setAddedTime(additionalTime);
+    moveUpAndFade();
     timerRef.current += additionalTime;
     setTimer(timerRef.current);
   };
@@ -286,24 +311,28 @@ export default function Board() {
 
   const determineColor = () => {
     if (!validity) {
-      return boardStyles.activeGridItemIncorrect;
+      return (prevColorRef.current = boardStyles.activeGridItemIncorrect);
     } else if (alreadyFound) {
-      return boardStyles.alreadyFound;
+      return (prevColorRef.current = boardStyles.alreadyFound);
     } else {
-      return boardStyles.activeGridItemCorrect;
+      return (prevColorRef.current = boardStyles.activeGridItemCorrect);
     }
   }
 
   return (
     <View style={boardStyles.board}>
       <View style={boardStyles.timerContainer}>
+        <Animated.Text style={[boardStyles.addedTime, { transform: [{ translateY: translateY }], opacity: fadeAddedTime }]}>{"+" + addedTime}</Animated.Text>
         <Text style={boardStyles.timer}>{timer}</Text>
       </View>
       <View style={boardStyles.currentStringContainer}>
         {currentString !== "" && (
           <Text style={[boardStyles.currentString, determineColor()]}>{currentString}</Text>
         )}
-        <Animated.Text style={[boardStyles.prevString, determineColor(), { opacity: fade}]}>{prevString}</Animated.Text>
+        {currentString === "" && prevString !== "" && (
+          <Animated.Text style={[boardStyles.prevString, prevColorRef.current, { opacity: fadeString }]}>{prevString}</Animated.Text>
+        )}
+        
       </View>
       <View style={boardStyles.gridBoard}>
         <GestureDetector gesture={handleGesture}>
