@@ -22,23 +22,37 @@ export default function Result() {
   return (
     <View style={resultStyles.result}>
       <View style={resultStyles.resultInfoContainer}>
-        <Text style={resultStyles.timeLasted}>
-          You lasted {totalTime} seconds
+        <Text style={resultStyles.timeLastedMessage}>
+          Score:  <Text style={resultStyles.timeLasted}>{totalTime}</Text> s
         </Text>
-        <TouchableOpacity onPress={() => router.push("/")}>
-          <Text>Home</Text>
+        <View style={resultStyles.resultBtnsContainer}>
+        <TouchableOpacity onPress={() => router.push("/game")} style={resultStyles.resultBtn}>
+          <Text style={resultStyles.resultBtnText}>Play Again</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/")} style={resultStyles.resultBtn}>
+          <Text style={resultStyles.resultBtnText}>Home</Text>
+        </TouchableOpacity>
+        </View>
       </View>
       <View style={resultStyles.wordListContainer}>
+      <Text style={resultStyles.wordsFound}>
+          Words Found: {words[0] === "" ? 0 : words.length}
+        </Text>
         <FlatList
           style={resultStyles.wordList}
           contentContainerStyle={resultStyles.contentContainerStyle}
           data={words}
-          renderItem={({ item }) => (
-            <View style={resultStyles.wordContainer}>
-              <Text style={resultStyles.word}>{item}</Text>
-            </View>
-          )}
+          renderItem={({ item }) => {
+            if (item === "") return (<View style={[resultStyles.wordContainer, { gap: 5, alignItems: "flex-start" }]}>
+              <Text style={resultStyles.word}>Nothing?</Text>
+              <Text style={resultStyles.word}>Try again!</Text>
+            </View>);
+            return (
+              <View style={resultStyles.wordContainer}>
+                <Text style={resultStyles.word}>{item}</Text>
+              </View>
+            );
+          }}
         />
       </View>
     </View>

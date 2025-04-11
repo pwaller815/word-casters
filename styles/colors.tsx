@@ -1,7 +1,7 @@
 export default {
   background: "#2d6a4f",
   boardBackground: "#74c69d",
-  letterBackground: "#f2e9e4",
+  letterBackground: "#ffedd8",
   letterColor: "#081c15",
   timerColor: "rgb(252, 246, 246)",
   border: "#1b512d",
