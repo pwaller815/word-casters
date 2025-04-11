@@ -1,6 +1,7 @@
 import { Animated, Text, View } from "react-native";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import * as Haptics from "expo-haptics";
 import isWordValid from "@/database/isWordValid";
 import boardStyles from "@/styles/boardStyles";
 import * as SQLite from "expo-sqlite";
@@ -14,9 +15,12 @@ export default function Board() {
   const [prevString, setPrevString] = useState<string>("");
   const [validity, setValidity] = useState<boolean>(false);
   const [alreadyFound, setAlreadyFound] = useState<boolean>(false);
-  const [timer, setTimer] = useState<number>(10);
+  const [timer, setTimer] = useState<number>(15);
   const [addedTime, setAddedTime] = useState<number>(0);
 
+  const changeColorRef = useRef<boolean>(false);
+  const validityRef = useRef<boolean>(false);
+  const alreadyFoundRef = useRef<boolean>(false);
   const currentIndexRef = useRef<number>(-1);
   const firstIndexRef = useRef<number>(-1);
   const selectedIndicesRef = useRef<number[]>([]);
@@ -127,7 +131,7 @@ export default function Board() {
     const startTimer = () => {
       if (timerRef.current > 0) return;
 
-      timerRef.current = 100;
+      timerRef.current = 15;
 
       let timerInterval = setInterval(() => {
         if (timerRef.current > 0) {
@@ -135,7 +139,15 @@ export default function Board() {
           totalTimeRef.current += 1;
           setTimer(timerRef.current);
         } else {
+          console.log(totalTimeRef.current);
           clearInterval(timerInterval);
+          router.push({
+            pathname: "/result",
+            params: {
+              wordsString: JSON.stringify(wordsFoundRef.current),
+              totalTime: totalTimeRef.current,
+            },
+          });
         }
       }, 1000);
     };
@@ -211,15 +223,21 @@ export default function Board() {
       setCurrentString(currentStringRef.current);
       if (currentStringRef.current.length >= 3) {
         if (db.current != null) {
-          setAlreadyFound(
-            wordsFoundRef.current.includes(currentStringRef.current)
+          alreadyFoundRef.current = wordsFoundRef.current.includes(
+            currentStringRef.current
           );
-          setValidity(
-            await isWordValid(
-              db.current,
-              currentStringRef.current.toLowerCase()
-            )
+          validityRef.current = await isWordValid(
+            db.current,
+            currentStringRef.current.toLowerCase()
           );
+
+          changeColorRef.current = true;
+
+          setAlreadyFound(alreadyFoundRef.current);
+          setValidity(validityRef.current);
+
+          if (validityRef.current && !alreadyFoundRef.current)
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
       }
     }
@@ -283,6 +301,7 @@ export default function Board() {
 
       if (index !== -1) {
         addLetter(index);
+        changeColorRef.current = false;
         scaleUp(index);
       }
     })
@@ -292,6 +311,7 @@ export default function Board() {
       if (validity && !alreadyFound) {
         evaluateWord(currentStringRef.current);
         wordsFoundRef.current.push(currentStringRef.current);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       }
       letterScales.current = new Map<number, Animated.Value>();
       currentIndexRef.current = -1;
@@ -309,30 +329,50 @@ export default function Board() {
 
   const handleGesture = Gesture.Simultaneous(longPress, pan);
 
-  const determineColor = () => {
-    if (!validity) {
-      return (prevColorRef.current = boardStyles.activeGridItemIncorrect);
-    } else if (alreadyFound) {
-      return (prevColorRef.current = boardStyles.alreadyFound);
-    } else {
-      return (prevColorRef.current = boardStyles.activeGridItemCorrect);
-    }
-  }
+  const colorStyle = useMemo(() => {
+    const determineColor = () => {
+      if (alreadyFound) {
+        return (prevColorRef.current = boardStyles.alreadyFound);
+      } else if (!validity) {
+        return (prevColorRef.current = boardStyles.activeGridItemIncorrect);
+      } else {
+        return (prevColorRef.current = boardStyles.activeGridItemCorrect);
+      }
+    };
+
+    return determineColor();
+  }, [changeColorRef.current]);
 
   return (
     <View style={boardStyles.board}>
       <View style={boardStyles.timerContainer}>
-        <Animated.Text style={[boardStyles.addedTime, { transform: [{ translateY: translateY }], opacity: fadeAddedTime }]}>{"+" + addedTime}</Animated.Text>
+        <Animated.Text
+          style={[
+            boardStyles.addedTime,
+            { transform: [{ translateY: translateY }], opacity: fadeAddedTime },
+          ]}
+        >
+          {"+" + addedTime}
+        </Animated.Text>
         <Text style={boardStyles.timer}>{timer}</Text>
       </View>
       <View style={boardStyles.currentStringContainer}>
         {currentString !== "" && (
-          <Text style={[boardStyles.currentString, determineColor()]}>{currentString}</Text>
+          <Text style={[boardStyles.currentString, colorStyle]}>
+            {currentString}
+          </Text>
         )}
         {currentString === "" && prevString !== "" && (
-          <Animated.Text style={[boardStyles.prevString, prevColorRef.current, { opacity: fadeString }]}>{prevString}</Animated.Text>
+          <Animated.Text
+            style={[
+              boardStyles.prevString,
+              prevColorRef.current,
+              { opacity: fadeString },
+            ]}
+          >
+            {prevString}
+          </Animated.Text>
         )}
-        
       </View>
       <View style={boardStyles.gridBoard}>
         <GestureDetector gesture={handleGesture}>
@@ -358,7 +398,7 @@ export default function Board() {
                   style={[
                     animatedStyle,
                     boardStyles.gridItem,
-                    selected && determineColor(),
+                    selected && colorStyle,
                   ]}
                 >
                   <Text style={boardStyles.letter}>{character}</Text>

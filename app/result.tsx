@@ -5,7 +5,10 @@ import { useEffect, useState } from "react";
 import resultStyles from "@/styles/resultStyles";
 
 export default function Result() {
-  const { wordsString } = useLocalSearchParams<{ wordsString: string}>();
+  const { wordsString, totalTime } = useLocalSearchParams<{
+    wordsString: string;
+    totalTime: string;
+  }>();
 
   const parseWordsString = (wordsString: string): string[] => {
     const words = wordsString.split('","');
@@ -19,19 +22,25 @@ export default function Result() {
   return (
     <View style={resultStyles.result}>
       <View style={resultStyles.resultInfoContainer}>
-        <Text>You lasted X minutes</Text>
+        <Text style={resultStyles.timeLasted}>
+          You lasted {totalTime} seconds
+        </Text>
         <TouchableOpacity onPress={() => router.push("/")}>
           <Text>Home</Text>
         </TouchableOpacity>
       </View>
-      <FlatList
-        data={words}
-        renderItem={({ item }) => (
-          <View style={{ padding: 10 }}>
-            <Text>{item}</Text>
-          </View>
-        )}
-      />
+      <View style={resultStyles.wordListContainer}>
+        <FlatList
+          style={resultStyles.wordList}
+          contentContainerStyle={resultStyles.contentContainerStyle}
+          data={words}
+          renderItem={({ item }) => (
+            <View style={resultStyles.wordContainer}>
+              <Text style={resultStyles.word}>{item}</Text>
+            </View>
+          )}
+        />
+      </View>
     </View>
   );
 }
