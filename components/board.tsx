@@ -6,6 +6,7 @@ import isWordValid from "@/database/isWordValid";
 import boardStyles from "@/styles/boardStyles";
 import * as SQLite from "expo-sqlite";
 import { useRouter } from "expo-router";
+import findAllWords from "@/assets/methods/findAllWords";
 
 export default function Board() {
   const db = useRef<SQLite.SQLiteDatabase | null>(null);
@@ -30,6 +31,7 @@ export default function Board() {
   const wordsFoundRef = useRef<string[]>([]);
   const isDraggingRef = useRef<boolean>(false);
   const prevColorRef = useRef<object>({});
+  const allWords = useRef<string[]>([]);
 
   const [longPressed, setLongPressed] = useState<number>(-1);
 
@@ -114,19 +116,23 @@ export default function Board() {
     return array;
   }
 
-  function generateBoard(): void {
+  function generateBoard(): string[] {
     let shuffled: string[][] = shuffleArray(JSON.parse(JSON.stringify(die)));
     let newBoard: string[] = [];
     for (let i = 0; i < 16; i++) {
       newBoard[i] = shuffled[i][Math.floor(Math.random() * 6)];
     }
-    setLetters(newBoard);
+    return newBoard;
   }
 
   useEffect(() => {
     const openConnection = async () => {
       db.current = await SQLite.openDatabaseAsync("dictionary.db");
     };
+
+    const SetAllWords = async (letters: string[]) => {
+      allWords.current = await findAllWords(letters);
+    }
 
     const startTimer = () => {
       if (timerRef.current > 0) return;
@@ -139,12 +145,12 @@ export default function Board() {
           totalTimeRef.current += 1;
           setTimer(timerRef.current);
         } else {
-          console.log(totalTimeRef.current);
           clearInterval(timerInterval);
           router.push({
             pathname: "/result",
             params: {
               wordsString: JSON.stringify(wordsFoundRef.current),
+              allWords: JSON.stringify(allWords.current),
               totalTime: totalTimeRef.current,
             },
           });
@@ -154,7 +160,10 @@ export default function Board() {
 
     if (letters.length === 0) {
       openConnection();
-      generateBoard();
+      
+      const newLetters = generateBoard();
+      setLetters(newLetters);
+      SetAllWords(newLetters);
     }
 
     startTimer();

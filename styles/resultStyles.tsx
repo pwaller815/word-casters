@@ -19,7 +19,10 @@ export default StyleSheet.create({
     width: "100%",
     height: "10%",
     marginTop: "32%",
-    gap: 20,
+    gap: 25,
+  },
+  timeLastedContainer: {
+    ...baseContainer,
   },
   timeLastedMessage: {
     color: colors.timerColor,
@@ -55,12 +58,29 @@ export default StyleSheet.create({
   wordListContainer: {
     ...baseContainer,
     width: "100%",
-    marginTop: "15%",
+    marginTop: "20%",
     shadowColor: colors.letterColor,
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.5,
     shadowRadius: 7,
-    gap: 10,
+  },
+  tabContainer: {
+    flexDirection: "row",
+  },
+  tab: {
+    width: "20%",
+    borderWidth: 2,
+    borderBottomWidth: 0,
+    borderColor: colors.border,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    backgroundColor: colors.letterColor,
+  },
+  activeTab: {
+    backgroundColor: colors.border,
+  },
+  tabText: {
+    color: colors.timerColor,
   },
   wordsFound: {
     color: colors.timerColor,
