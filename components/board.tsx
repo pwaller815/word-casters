@@ -132,7 +132,7 @@ export default function Board() {
 
     const SetAllWords = async (letters: string[]) => {
       allWords.current = await findAllWords(letters);
-    }
+    };
 
     const startTimer = () => {
       if (timerRef.current > 0) return;
@@ -146,6 +146,11 @@ export default function Board() {
           setTimer(timerRef.current);
         } else {
           clearInterval(timerInterval);
+          wordsFoundRef.current.sort((a, b) => {
+            return a.length !== b.length
+              ? b.length - a.length
+              : a.localeCompare(b);
+          });
           router.push({
             pathname: "/result",
             params: {
@@ -160,7 +165,7 @@ export default function Board() {
 
     if (letters.length === 0) {
       openConnection();
-      
+
       const newLetters = generateBoard();
       setLetters(newLetters);
       SetAllWords(newLetters);

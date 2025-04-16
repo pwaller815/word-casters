@@ -63,11 +63,8 @@ export default StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.5,
     shadowRadius: 3,
-    fontWeight: "bold",
+    fontWeight: "800",
     fontSize: 33.7,
     color: colors.letterColor,
-    textShadowColor: colors.letterColor,
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 1,
   },
 });

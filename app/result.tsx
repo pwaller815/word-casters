@@ -52,11 +52,31 @@ export default function Result() {
       </View>
       <View style={resultStyles.wordListContainer}>
         <View style={resultStyles.tabContainer}>
-          <TouchableOpacity onPress={() => setWordList(true)} style={[resultStyles.tab, wordList && resultStyles.activeTab]}>
-            <Text style={resultStyles.tabText}>Your Words</Text>
+          <TouchableOpacity
+            onPress={() => setWordList(true)}
+            style={[resultStyles.tab, wordList && resultStyles.activeTab]}
+          >
+            <Text
+              style={[
+                resultStyles.tabText,
+                !wordList && resultStyles.activeTabText,
+              ]}
+            >
+              Your Words
+            </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => setWordList(false)} style={[resultStyles.tab, !wordList && resultStyles.activeTab]}>
-            <Text style={resultStyles.tabText}>All Words</Text>
+          <TouchableOpacity
+            onPress={() => setWordList(false)}
+            style={[resultStyles.tab, !wordList && resultStyles.activeTab]}
+          >
+            <Text
+              style={[
+                resultStyles.tabText,
+                wordList && resultStyles.activeTabText,
+              ]}
+            >
+              All Words
+            </Text>
           </TouchableOpacity>
         </View>
         {wordList ? (
@@ -64,38 +84,48 @@ export default function Result() {
             style={resultStyles.wordList}
             contentContainerStyle={resultStyles.contentContainerStyle}
             data={words}
-            renderItem={({ item }) => {
-              if (item === "")
-                return (
-                  <View
-                    style={[
-                      resultStyles.wordContainer,
-                      { gap: 5, alignItems: "flex-start" },
-                    ]}
-                  >
-                    <Text style={resultStyles.word}>Nothing?</Text>
-                    <Text style={resultStyles.word}>Try again!</Text>
-                  </View>
-                );
-              return (
-                <View style={resultStyles.wordContainer}>
-                  <Text style={resultStyles.word}>{item}</Text>
+            renderItem={({ item }) =>
+              item === "" ? (
+                <View
+                  style={[
+                    resultStyles.wordContainer,
+                    { gap: 5, alignItems: "flex-start" },
+                  ]}
+                >
+                  <Text style={resultStyles.word}>Nothing?</Text>
+                  <Text style={resultStyles.word}>Try again!</Text>
                 </View>
-              );
-            }}
+              ) : (
+                <View style={resultStyles.listRowContainer}>
+                  <View style={resultStyles.wordContainer}>
+                    <Text style={resultStyles.word}>{item}</Text>
+                  </View>
+                  <Text style={resultStyles.wordLength}>{item.length}</Text>
+                </View>
+              )
+            }
           />
         ) : (
           <FlatList
             style={resultStyles.wordList}
             contentContainerStyle={resultStyles.contentContainerStyle}
             data={everyWord}
-            renderItem={({ item }) => {
-              return (
+            renderItem={({ item }) => (
+              <View style={resultStyles.listRowContainer}>
                 <View style={resultStyles.wordContainer}>
-                  <Text style={resultStyles.word}>{item.toUpperCase()}</Text>
+                  <Text
+                    style={[
+                      resultStyles.word,
+                      words.includes(item.toUpperCase()) &&
+                        resultStyles.activeGridItemCorrect,
+                    ]}
+                  >
+                    {item.toUpperCase()}
+                  </Text>
                 </View>
-              );
-            }}
+                <Text style={resultStyles.wordLength}>{item.length}</Text>
+              </View>
+            )}
           />
         )}
       </View>

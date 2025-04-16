@@ -61,10 +61,7 @@ export default async function findAllWords(letters: string[]) {
   }
 
   const sortedWords = Array.from(wordsFound).sort((a, b) => {
-    if (a.length !== b.length) {
-      return b.length - a.length;
-    }
-    return a.localeCompare(b);
+    return a.length !== b.length ? b.length - a.length : a.localeCompare(b);
   });
 
   return sortedWords;

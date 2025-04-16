@@ -31,12 +31,12 @@ export default StyleSheet.create({
     position: "absolute",
     color: colors.timerColor,
     fontSize: 35,
-    fontWeight: "bold",
+    fontWeight: "800",
   },
   timer: {
     color: colors.timerColor,
     fontSize: 55,
-    fontWeight: "bold",
+    fontWeight: "800",
   },
   currentStringContainer: {
     width: 200,
@@ -48,7 +48,7 @@ export default StyleSheet.create({
   currentString: {
     zIndex: 2,
     fontSize: 25,
-    fontWeight: "bold",
+    fontWeight: "800",
     padding: 4,
     borderRadius: 10,
     borderWidth: 2,
@@ -57,7 +57,7 @@ export default StyleSheet.create({
     position: "absolute",
     zIndex: 1,
     fontSize: 25,
-    fontWeight: "bold",
+    fontWeight: "800",
     padding: 4,
     borderRadius: 10,
     borderWidth: 2,
@@ -110,11 +110,8 @@ export default StyleSheet.create({
     borderColor: colors.alreadyFoundBorder,
   },
   letter: {
-    fontWeight: "bold",
+    fontWeight: "800",
     fontSize: 55,
     color: colors.letterColor,
-    textShadowColor: colors.letterColor,
-    textShadowOffset: { width: -1, height: 1 },
-    textShadowRadius: 1,
   },
 });
