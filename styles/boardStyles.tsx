@@ -109,6 +109,12 @@ export default StyleSheet.create({
     backgroundColor: colors.alreadyFound,
     borderColor: colors.alreadyFoundBorder,
   },
+  oneUse: {
+    color: "orange",
+  },
+  twoUse: {
+    color: "red",
+  },
   letter: {
     fontWeight: "800",
     fontSize: 55,

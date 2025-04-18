@@ -36,7 +36,7 @@ export default StyleSheet.create({
   },
   resultBtnsContainer: {
     ...baseContainer,
-    gap: 5,
+    gap: 20,
     flexDirection: "row",
   },
   resultBtn: {
@@ -44,7 +44,8 @@ export default StyleSheet.create({
     borderRadius: 10,
     borderWidth: 3,
     borderColor: colors.letterColor,
-    padding: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     shadowColor: colors.letterColor,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.5,

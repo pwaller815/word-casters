@@ -3,6 +3,7 @@ import { FlatList } from "react-native-gesture-handler";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import resultStyles from "@/styles/resultStyles";
+import { HomeIcon, ReplayIcon } from "@/assets/fonts/icons";
 
 export default function Result() {
   const [wordList, setWordList] = useState<boolean>(true);
@@ -40,13 +41,13 @@ export default function Result() {
             onPress={() => router.push("/game")}
             style={resultStyles.resultBtn}
           >
-            <Text style={resultStyles.resultBtnText}>Play Again</Text>
+            <Text style={resultStyles.resultBtnText}><ReplayIcon /></Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push("/")}
             style={resultStyles.resultBtn}
           >
-            <Text style={resultStyles.resultBtnText}>Home</Text>
+            <Text style={resultStyles.resultBtnText}><HomeIcon /></Text>
           </TouchableOpacity>
         </View>
       </View>
