@@ -1,4 +1,4 @@
-import { Animated, Text, View } from "react-native";
+import { Animated, Text, View, Pressable } from "react-native";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
@@ -21,7 +21,7 @@ export default function Board() {
   const [addedTime, setAddedTime] = useState<number>(0);
 
   const lettersRef = useRef<string[]>([]);
-  const letterUsesRef = useRef<number[]>(Array(16).fill(3));
+  // const letterUsesRef = useRef<number[]>(Array(16).fill(3));
   const changeColorRef = useRef<boolean>(false);
   const validityRef = useRef<boolean>(false);
   const alreadyFoundRef = useRef<boolean>(false);
@@ -36,6 +36,15 @@ export default function Board() {
   const prevColorRef = useRef<object>({});
   const allWords = useRef<string[]>([]);
 
+  // Reset Button
+  const [resetAvailable, setResetAvailable] = useState<boolean>(false);
+  const holdProgress = useRef(new Animated.Value(0)).current;
+  const holdAnimation = useRef<Animated.CompositeAnimation | null>(null);
+
+  // Queue of boards
+  const currBoardWordsFoundRef = useRef<string[]>([]);
+  const boardQueue = useRef<{ letters: string[]; allWords: string[] }[]>([]);
+
   const [longPressed, setLongPressed] = useState<number>(-1);
 
   const letterScales = useRef(new Map<number, Animated.Value>());
@@ -43,6 +52,7 @@ export default function Board() {
   const fadeAddedTime = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
 
+  // Used for added time
   const moveUpAndFade = () => {
     translateY.setValue(0);
     fadeAddedTime.setValue(1);
@@ -90,6 +100,59 @@ export default function Board() {
     });
   };
 
+  // Reset Button
+  const triggerReset = () => {
+    const wordFoundCount = currBoardWordsFoundRef.current.length;
+    const totalWords = allWords.current.length;
+    const percentageFound = totalWords > 0 ? wordFoundCount / totalWords : 0;
+
+    const timeBonus = Math.round(5 + percentageFound * 25);
+
+    timerRef.current += timeBonus;
+    setTimer(timerRef.current);
+    setAddedTime(timeBonus);
+    moveUpAndFade();
+
+    const nextBoard = boardQueue.current.shift();
+    if (nextBoard) {
+      lettersRef.current = nextBoard.letters;
+      setLetters(nextBoard.letters);
+      allWords.current = nextBoard.allWords;
+    }
+
+    wordsFoundRef.current = [
+      ...wordsFoundRef.current,
+      ...currBoardWordsFoundRef.current,
+    ];
+
+    setResetAvailable(false);
+    currBoardWordsFoundRef.current = [];
+
+    generateAndQueueBoard();
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  };
+
+  const startHold = () => {
+    if (!resetAvailable) return;
+    holdAnimation.current = Animated.timing(holdProgress, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: false,
+    });
+    holdAnimation.current.start(({ finished }) => {
+      if (finished) {
+        triggerReset(); // wire this up later
+        holdProgress.setValue(0);
+      }
+    });
+  };
+
+  const cancelHold = () => {
+    holdAnimation.current?.stop();
+    holdProgress.setValue(0);
+  };
+
   const router = useRouter();
 
   const die = [
@@ -128,6 +191,12 @@ export default function Board() {
     return newBoard;
   }
 
+  const generateAndQueueBoard = async () => {
+    const letters = generateBoard();
+    const words = await findAllWords(letters);
+    boardQueue.current.push({ letters, allWords: words });
+  };
+
   function generateLetter(index: number): string {
     return die[index][Math.floor(Math.random() * 6)];
   }
@@ -135,10 +204,6 @@ export default function Board() {
   useEffect(() => {
     const openConnection = async () => {
       db.current = await SQLite.openDatabaseAsync("dictionary.db");
-    };
-
-    const SetAllWords = async (letters: string[]) => {
-      allWords.current = await findAllWords(letters);
     };
 
     const startTimer = () => {
@@ -158,25 +223,31 @@ export default function Board() {
               ? b.length - a.length
               : a.localeCompare(b);
           });
-          // router.push({
-          //   pathname: "/result",
-          //   params: {
-          //     wordsString: JSON.stringify(wordsFoundRef.current),
-          //     allWords: JSON.stringify(allWords.current),
-          //     totalTime: totalTimeRef.current,
-          //   },
-          // });
+          router.push({
+            pathname: "/result",
+            params: {
+              wordsString: JSON.stringify(wordsFoundRef.current),
+              allWords: JSON.stringify(allWords.current),
+              totalTime: totalTimeRef.current,
+            },
+          });
         }
       }, 1000);
     };
 
-    if (letters.length === 0) {
-      openConnection();
+    const initialize = async () => {
+      await openConnection();
 
       const newLetters = generateBoard();
       lettersRef.current = newLetters;
       setLetters(newLetters);
-      SetAllWords(newLetters);
+      allWords.current = await findAllWords(newLetters);
+
+      generateAndQueueBoard(); // fire and forget
+    };
+
+    if (letters.length === 0) {
+      initialize();
     }
 
     startTimer();
@@ -229,7 +300,7 @@ export default function Board() {
 
   const isNeighbor = (index: number) => {
     const rowDiff = Math.abs(
-      Math.floor(currentIndexRef.current / 4) - Math.floor(index / 4)
+      Math.floor(currentIndexRef.current / 4) - Math.floor(index / 4),
     );
     const colDiff = Math.abs((currentIndexRef.current % 4) - (index % 4));
 
@@ -246,11 +317,11 @@ export default function Board() {
       if (currentStringRef.current.length >= 3) {
         if (db.current != null) {
           alreadyFoundRef.current = wordsFoundRef.current.includes(
-            currentStringRef.current
+            currentStringRef.current,
           );
           validityRef.current = await isWordValid(
             db.current,
-            currentStringRef.current.toLowerCase()
+            currentStringRef.current.toLowerCase(),
           );
 
           changeColorRef.current = true;
@@ -265,86 +336,102 @@ export default function Board() {
     }
   };
 
-  const evaluateWord = (word: string) => {
-    const length = word.length;
-    let additionalTime = 0;
+  // const evaluateWord = (word: string) => {
+  //   const length = word.length;
+  //   let additionalTime = 0;
 
-    switch (length) {
-      case 3:
-        additionalTime = 2;
-        break;
-      case 4:
-        additionalTime = 3;
-        break;
-      case 5:
-        additionalTime = 4;
-        break;
-      case 6:
-        additionalTime = 6;
-        break;
-      default:
-        additionalTime = 10;
-    }
+  //   switch (length) {
+  //     case 3:
+  //       additionalTime = 2;
+  //       break;
+  //     case 4:
+  //       additionalTime = 3;
+  //       break;
+  //     case 5:
+  //       additionalTime = 4;
+  //       break;
+  //     case 6:
+  //       additionalTime = 6;
+  //       break;
+  //     default:
+  //       additionalTime = 10;
+  //   }
 
-    setAddedTime(additionalTime);
-    moveUpAndFade();
-    timerRef.current += additionalTime;
-    setTimer(timerRef.current);
-  };
+  //   setAddedTime(additionalTime);
+  //   moveUpAndFade();
+  //   timerRef.current += additionalTime;
+  //   setTimer(timerRef.current);
+  // };
 
-  const explode = (index: number) => {
-    console.log("(" + index + " | " + lettersRef.current[index] + ") exploded!");
-    const row = Math.floor(index / 4);
-    const col = index % 4;
+  // const explode = (index: number) => {
+  //   console.log(
+  //     "(" + index + " | " + lettersRef.current[index] + ") exploded!",
+  //   );
+  //   const row = Math.floor(index / 4);
+  //   const col = index % 4;
 
-    let descend = row;
-    while (descend > 0) {
-      console.log("(" + (((descend * 4) + col) - 4) + " | " + lettersRef.current[((descend * 4) + col) - 4] + ") descended.");
+  //   let descend = row;
+  //   while (descend > 0) {
+  //     console.log(
+  //       "(" +
+  //         (descend * 4 + col - 4) +
+  //         " | " +
+  //         lettersRef.current[descend * 4 + col - 4] +
+  //         ") descended.",
+  //     );
 
-      let replaceIndex = (descend * 4) + col;
+  //     let replaceIndex = descend * 4 + col;
 
-      const updateIndex = selectedIndicesRef.current.indexOf(replaceIndex - 4);
-      if (updateIndex != -1) selectedIndicesRef.current[updateIndex] = replaceIndex;
+  //     const updateIndex = selectedIndicesRef.current.indexOf(replaceIndex - 4);
+  //     if (updateIndex != -1)
+  //       selectedIndicesRef.current[updateIndex] = replaceIndex;
 
-      lettersRef.current[replaceIndex] = lettersRef.current[replaceIndex - 4];
-      letterUsesRef.current[replaceIndex] = letterUsesRef.current[replaceIndex - 4];
-      descend--;
-    }
+  //     lettersRef.current[replaceIndex] = lettersRef.current[replaceIndex - 4];
+  //     letterUsesRef.current[replaceIndex] =
+  //       letterUsesRef.current[replaceIndex - 4];
+  //     descend--;
+  //   }
 
-    lettersRef.current[col] = generateLetter(index);
-    letterUsesRef.current[col] = 3;
+  //   lettersRef.current[col] = generateLetter(index);
+  //   letterUsesRef.current[col] = 3;
 
-    if (row > 0) {
-      letterUsesRef.current[index]--;
-      if (letterUsesRef.current[index] === 0) explode(index);
-    }
-    if (row < 3) {
-      letterUsesRef.current[index + 4]--;
-      if (letterUsesRef.current[index + 4] === 0) explode(index + 4);
-    }
-    if (col > 0) {
-      letterUsesRef.current[index - 1]--;
-      if (letterUsesRef.current[index - 1] === 0) explode(index - 1);
-    }
-    if (row < 3) {
-      letterUsesRef.current[index + 1]--;
-      if (letterUsesRef.current[index + 1] === 0) explode(index + 1);
-    }
-  };
+  //   if (row > 0) {
+  //     letterUsesRef.current[index]--;
+  //     if (letterUsesRef.current[index] === 0) explode(index);
+  //   }
+  //   if (row < 3) {
+  //     letterUsesRef.current[index + 4]--;
+  //     if (letterUsesRef.current[index + 4] === 0) explode(index + 4);
+  //   }
+  //   if (col > 0) {
+  //     letterUsesRef.current[index - 1]--;
+  //     if (letterUsesRef.current[index - 1] === 0) explode(index - 1);
+  //   }
+  //   if (row < 3) {
+  //     letterUsesRef.current[index + 1]--;
+  //     if (letterUsesRef.current[index + 1] === 0) explode(index + 1);
+  //   }
+  // };
 
-  const updateUses = () => {
-    for (const index of selectedIndicesRef.current) {
-      const uses = letterUsesRef.current[index];
-      uses > 1 ? letterUsesRef.current[index]-- : explode(index);
-    }
-    setLetters(lettersRef.current);
-    setLetterUses(letterUsesRef.current);
-  }
+  // const updateUses = () => {
+  //   for (const index of selectedIndicesRef.current) {
+  //     const uses = letterUsesRef.current[index];
+  //     uses > 1 ? letterUsesRef.current[index]-- : explode(index);
+  //   }
+  //   setLetters(lettersRef.current);
+  //   setLetterUses(letterUsesRef.current);
+  // };
 
   const submitWord = () => {
-    evaluateWord(currentStringRef.current);
-    updateUses();
+    // evaluateWord(currentStringRef.current);
+    // updateUses();
     wordsFoundRef.current.push(currentStringRef.current);
+    currBoardWordsFoundRef.current.push(currentStringRef.current);
+
+    if (currBoardWordsFoundRef.current.length >= 5) {
+      setResetAvailable(true);
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
 
@@ -419,16 +506,16 @@ export default function Board() {
     return determineColor();
   }, [changeColorRef.current]);
 
-  const determineUses = (index: number) => {
-    const uses = letterUsesRef.current[index];
-    if (uses === 3) {
-      return {};
-    } else if (uses === 2) {
-      return boardStyles.oneUse;
-    } else {
-      return boardStyles.twoUse;
-    }
-  }
+  // const determineUses = (index: number) => {
+  //   const uses = letterUsesRef.current[index];
+  //   if (uses === 3) {
+  //     return {};
+  //   } else if (uses === 2) {
+  //     return boardStyles.oneUse;
+  //   } else {
+  //     return boardStyles.twoUse;
+  //   }
+  // };
 
   return (
     <View style={boardStyles.board}>
@@ -488,13 +575,48 @@ export default function Board() {
                     selected && colorStyle,
                   ]}
                 >
-                  <Text style={[ boardStyles.letter, determineUses(index),]}>{character}</Text>
+                  <Text
+                    style={[boardStyles.letter /*, determineUses(index) */]}
+                  >
+                    {character}
+                  </Text>
                 </Animated.View>
               );
             })}
           </View>
         </GestureDetector>
       </View>
+      <Pressable onPressIn={startHold} onPressOut={cancelHold}>
+        <View
+          style={[
+            boardStyles.resetButton,
+            !resetAvailable && boardStyles.resetButtonLocked,
+          ]}
+        >
+          <Animated.View
+            style={[
+              boardStyles.resetButtonFill,
+              !resetAvailable && boardStyles.resetButtonFillLocked,
+              {
+                width: holdProgress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ["0%", "100%"],
+                }),
+              },
+            ]}
+          />
+          <Text
+            style={[
+              boardStyles.resetButtonText,
+              !resetAvailable && boardStyles.resetButtonTextLocked,
+            ]}
+          >
+            {resetAvailable
+              ? "Reset"
+              : `${currBoardWordsFoundRef.current.length}/5`}
+          </Text>
+        </View>
+      </Pressable>
     </View>
   );
 }

@@ -120,4 +120,43 @@ export default StyleSheet.create({
     fontSize: 55,
     color: colors.letterColor,
   },
+  resetButton: {
+    width: "60%",
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: "#1a1a2e",
+    overflow: "hidden",
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+    alignSelf: "center",
+    marginTop: 20,
+    borderWidth: 1,
+    borderColor: "#ffffff20",
+  },
+  resetButtonFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    height: "100%",
+    backgroundColor: "#95d5b2",
+    opacity: 0.4,
+  },
+  resetButtonText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "600",
+    zIndex: 1,
+  },
+  resetButtonLocked: {
+    borderColor: "#ffffff10",
+    opacity: 0.5,
+  },
+  resetButtonFillLocked: {
+    backgroundColor: "#ffffff",
+    opacity: 0.15,
+  },
+  resetButtonTextLocked: {
+    color: "#ffffff60",
+  },
 });

@@ -6,6 +6,7 @@ import createAndPopulateDatabase from "@/database/populateDatabase";
 import buildTrieFromDB from "@/database/generateTrie";
 import { setTrie } from "@/assets/classes/trieStore";
 import { Trie } from "@/assets/classes/trie";
+import * as SQLite from "expo-sqlite";
 
 export default function RootLayout() {
   useEffect(() => {
@@ -17,14 +18,28 @@ export default function RootLayout() {
         if (!fileInfo.exists) {
           console.log("Database does not exist, creating and populating...");
           await createAndPopulateDatabase();
-
-          await buildTrieFromDB();
         } else {
-          console.log("Database already exists, skipping population.");
+          // Verify the db is actually populated
+          const db = await SQLite.openDatabaseAsync("dictionary.db");
+          const result = await db.getFirstAsync<{ count: number }>(
+            "SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='words'",
+          );
+          if (!result || result.count === 0) {
+            console.log("Database exists but is empty, repopulating...");
+            await createAndPopulateDatabase();
+          }
         }
+
+        try {
+          await buildTrieFromDB();
+          console.log("buildTrieFromDB completed");
+        } catch (error) {
+          console.error("buildTrieFromDB threw:", error);
+        }
+
         try {
           const jsonString = await FileSystem.readAsStringAsync(
-            FileSystem.documentDirectory + "trie.json"
+            FileSystem.documentDirectory + "trie.json",
           );
           const parsedData = JSON.parse(jsonString);
           const trie = Trie.fromJSON(parsedData);
