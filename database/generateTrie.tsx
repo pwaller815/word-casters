@@ -1,5 +1,5 @@
 import * as SQLite from "expo-sqlite";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { TrieNode, Trie } from "@/assets/classes/trie";
 
 export default async function buildTrieFromDB() {

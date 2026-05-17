@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import createAndPopulateDatabase from "@/database/populateDatabase";
 import buildTrieFromDB from "@/database/generateTrie";
 import { setTrie } from "@/assets/classes/trieStore";
@@ -18,7 +18,7 @@ export default function RootLayout() {
           console.log("Database does not exist, creating and populating...");
           await createAndPopulateDatabase();
 
-          buildTrieFromDB();
+          await buildTrieFromDB();
         } else {
           console.log("Database already exists, skipping population.");
         }
