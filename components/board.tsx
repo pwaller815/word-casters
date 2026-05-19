@@ -1,14 +1,17 @@
-import { Animated, Text, View, Pressable } from "react-native";
+import { Animated, Text, View, Pressable, StyleSheet } from "react-native";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import isWordValid from "@/database/isWordValid";
-import boardStyles from "@/styles/boardStyles";
+import boardStyles, { GRID_SIZE, TOTAL_OVERHEAD } from "@/styles/boardStyles";
 import * as SQLite from "expo-sqlite";
 import { useRouter } from "expo-router";
 import findAllWords from "@/assets/methods/findAllWords";
 
 export default function Board() {
+  // ─── Safe Area ───────────────────────────────────────────
+  const insets = useSafeAreaInsets();
   // ─── Database ───────────────────────────────────────────
   const db = useRef<SQLite.SQLiteDatabase | null>(null);
 
@@ -64,9 +67,9 @@ export default function Board() {
   const holdProgress = useRef(new Animated.Value(0)).current;
   const holdAnimation = useRef<Animated.CompositeAnimation | null>(null);
 
-  // ─── Removed (unused outside commented code) ─────────────
-  // const [letterUses, setLetterUses] = useState<number[]>(Array(16).fill(3));
-  // const letterUsesRef = useRef<number[]>(Array(16).fill(3));
+  // ─── Sizing ───────────────────────────────────────────────
+  const [boardSize, setBoardSize] = useState(0);
+  const itemSize = boardSize > 0 ? (boardSize - TOTAL_OVERHEAD) / GRID_SIZE : 0;
 
   // Used for added time
   const moveUpAndFade = () => {
@@ -239,14 +242,14 @@ export default function Board() {
               ? b.length - a.length
               : a.localeCompare(b);
           });
-          router.push({
-            pathname: "/result",
-            params: {
-              wordsString: JSON.stringify(wordsFoundRef.current),
-              allWords: JSON.stringify(allWords.current),
-              totalTime: totalTimeRef.current,
-            },
-          });
+          // router.push({
+          //   pathname: "/result",
+          //   params: {
+          //     wordsString: JSON.stringify(wordsFoundRef.current),
+          //     allWords: JSON.stringify(allWords.current),
+          //     totalTime: totalTimeRef.current,
+          //   },
+          // });
         }
       }, 1000);
     };
@@ -381,65 +384,6 @@ export default function Board() {
     setScore(scoreRef.current);
   };
 
-  // const explode = (index: number) => {
-  //   console.log(
-  //     "(" + index + " | " + lettersRef.current[index] + ") exploded!",
-  //   );
-  //   const row = Math.floor(index / 4);
-  //   const col = index % 4;
-
-  //   let descend = row;
-  //   while (descend > 0) {
-  //     console.log(
-  //       "(" +
-  //         (descend * 4 + col - 4) +
-  //         " | " +
-  //         lettersRef.current[descend * 4 + col - 4] +
-  //         ") descended.",
-  //     );
-
-  //     let replaceIndex = descend * 4 + col;
-
-  //     const updateIndex = selectedIndicesRef.current.indexOf(replaceIndex - 4);
-  //     if (updateIndex != -1)
-  //       selectedIndicesRef.current[updateIndex] = replaceIndex;
-
-  //     lettersRef.current[replaceIndex] = lettersRef.current[replaceIndex - 4];
-  //     letterUsesRef.current[replaceIndex] =
-  //       letterUsesRef.current[replaceIndex - 4];
-  //     descend--;
-  //   }
-
-  //   lettersRef.current[col] = generateLetter(index);
-  //   letterUsesRef.current[col] = 3;
-
-  //   if (row > 0) {
-  //     letterUsesRef.current[index]--;
-  //     if (letterUsesRef.current[index] === 0) explode(index);
-  //   }
-  //   if (row < 3) {
-  //     letterUsesRef.current[index + 4]--;
-  //     if (letterUsesRef.current[index + 4] === 0) explode(index + 4);
-  //   }
-  //   if (col > 0) {
-  //     letterUsesRef.current[index - 1]--;
-  //     if (letterUsesRef.current[index - 1] === 0) explode(index - 1);
-  //   }
-  //   if (row < 3) {
-  //     letterUsesRef.current[index + 1]--;
-  //     if (letterUsesRef.current[index + 1] === 0) explode(index + 1);
-  //   }
-  // };
-
-  // const updateUses = () => {
-  //   for (const index of selectedIndicesRef.current) {
-  //     const uses = letterUsesRef.current[index];
-  //     uses > 1 ? letterUsesRef.current[index]-- : explode(index);
-  //   }
-  //   setLetters(lettersRef.current);
-  //   setLetterUses(letterUsesRef.current);
-  // };
-
   const submitWord = () => {
     evaluateWord(currentStringRef.current);
     // updateUses();
@@ -524,25 +468,21 @@ export default function Board() {
     return determineColor();
   }, [changeColorRef.current]);
 
-  // const determineUses = (index: number) => {
-  //   const uses = letterUsesRef.current[index];
-  //   if (uses === 3) {
-  //     return {};
-  //   } else if (uses === 2) {
-  //     return boardStyles.oneUse;
-  //   } else {
-  //     return boardStyles.twoUse;
-  //   }
-  // };
-
   return (
     <View style={boardStyles.screen}>
       {/* Timer top right */}
-      <View style={boardStyles.timerTopRight}>
+      <View style={[boardStyles.timerTopRight, { top: insets.top }]}>
         <Text style={boardStyles.timer}>{timer}</Text>
       </View>
-
-      <View style={boardStyles.board}>
+      <View style={[boardStyles.opponentArea, { top: insets.top + 5 }]}>
+        <View style={boardStyles.opponentCharacterWindow}>
+          <Text style={boardStyles.opponentCharacterWindowText}>Character</Text>
+        </View>
+        <View style={boardStyles.opponentBoard}>
+          <Text style={boardStyles.opponentBoardText}>Board</Text>
+        </View>
+      </View>
+      <View style={[boardStyles.playerArea, { bottom: insets.bottom + 10}]}>
         {/* Character window placeholder */}
         <View style={boardStyles.characterWindow}>
           <Text style={boardStyles.characterWindowText}>Character</Text>
@@ -565,7 +505,10 @@ export default function Board() {
             </Animated.Text>
           )}
         </View>
-        <View style={boardStyles.gridBoard}>
+        <View
+          style={boardStyles.gridBoard}
+          onLayout={(e) => setBoardSize(e.nativeEvent.layout.width)}
+        >
           <GestureDetector gesture={handleGesture}>
             <View style={boardStyles.gridItems}>
               {letters.map((character: string, index: number) => {
@@ -589,6 +532,7 @@ export default function Board() {
                     style={[
                       animatedStyle,
                       boardStyles.gridItem,
+                      { width: itemSize, height: itemSize },
                       selected && colorStyle,
                     ]}
                   >
@@ -603,37 +547,39 @@ export default function Board() {
             </View>
           </GestureDetector>
         </View>
-        <Pressable onPressIn={startHold} onPressOut={cancelHold}>
-          <View
-            style={[
-              boardStyles.resetButton,
-              !resetAvailable && boardStyles.resetButtonLocked,
-            ]}
-          >
-            <Animated.View
+        <View style={boardStyles.spellsContainer}>
+          <Pressable onPressIn={startHold} onPressOut={cancelHold}>
+            <View
               style={[
-                boardStyles.resetButtonFill,
-                !resetAvailable && boardStyles.resetButtonFillLocked,
-                {
-                  width: holdProgress.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ["0%", "100%"],
-                  }),
-                },
-              ]}
-            />
-            <Text
-              style={[
-                boardStyles.resetButtonText,
-                !resetAvailable && boardStyles.resetButtonTextLocked,
+                boardStyles.resetButton,
+                !resetAvailable && boardStyles.resetButtonLocked,
               ]}
             >
-              {resetAvailable
-                ? "Reset"
-                : `${currBoardWordsFoundRef.current.length}/5`}
-            </Text>
-          </View>
-        </Pressable>
+              <Animated.View
+                style={[
+                  boardStyles.resetButtonFill,
+                  !resetAvailable && boardStyles.resetButtonFillLocked,
+                  {
+                    width: holdProgress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ["0%", "100%"],
+                    }),
+                  },
+                ]}
+              />
+              <Text
+                style={[
+                  boardStyles.resetButtonText,
+                  !resetAvailable && boardStyles.resetButtonTextLocked,
+                ]}
+              >
+                {resetAvailable
+                  ? "Reset"
+                  : `${currBoardWordsFoundRef.current.length}/5`}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
       </View>
     </View>
   );

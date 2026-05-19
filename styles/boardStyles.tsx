@@ -1,24 +1,24 @@
 import { StyleSheet } from "react-native";
 import colors from "./colors";
 
-const itemWidth = (330 - 23 - 10) / 4;
+export const GRID_SIZE = 4;
+export const BOARD_PADDING = 5;
+export const BOARD_BORDER = 5;
+export const GRID_PADDING = 5;
+export const GRID_GAP = 5;
+export const TOTAL_OVERHEAD = (BOARD_BORDER * 2) + (BOARD_PADDING * 2) + (GRID_PADDING * 2) + (GRID_GAP * (GRID_SIZE - 1));
 
 export default StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
     alignItems: "center",
-    justifyContent: "center", 
-  },
-  board: {
-    flex: 1,
-    flexDirection: "column",
     justifyContent: "center",
-    alignItems: "center",
+    zIndex: -1
   },
+  // TIMER
   timerTopRight: {
     position: "absolute",
-    top: 16,
     right: 16,
     zIndex: 10,
   },
@@ -27,8 +27,64 @@ export default StyleSheet.create({
     fontSize: 55,
     fontWeight: "800",
   },
+  addedTime: {
+    top: -12,
+    position: "absolute",
+    color: colors.timerColor,
+    fontSize: 35,
+    fontWeight: "800",
+  },
+  // OPPONENT AREA
+  opponentArea: {
+    flex: 1,
+    width: "60%",
+    flexDirection: "column",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    gap: 5,
+    zIndex: 0
+  },
+  opponentCharacterWindow: {
+    width: "20%",
+    aspectRatio: 0.7,
+    backgroundColor: "white",
+    borderTopLeftRadius: 100,
+    borderTopRightRadius: 100,
+    borderWidth: 2,
+    borderColor: "#ffffff15",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  opponentCharacterWindowText: {
+    color: "#ffffff30",
+    fontSize: 14,
+  },
+  opponentBoard: {
+    width: "80%",
+    aspectRatio: 1,
+    padding: 5,
+    backgroundColor: colors.boardBackground,
+    borderWidth: 5,
+    borderColor: colors.border,
+    borderRadius: 15,
+    shadowColor: colors.letterColor,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+  },
+  opponentBoardText: {
+    color: "#ffffff30",
+    fontSize: 14,
+  },
+  // PLAYER AREA
+  playerArea: {
+    position: "absolute",
+    width: "100%",
+    alignItems: "center",
+  },
+  // CHARACTER WINDOW
   characterWindow: {
-    width: "25%",
+    width: "20%",
     aspectRatio: 0.7,
     backgroundColor: "#0b1522",
     borderTopLeftRadius: 100,
@@ -37,24 +93,20 @@ export default StyleSheet.create({
     borderColor: "#ffffff15",
     alignItems: "center",
     justifyContent: "center",
+    
   },
   characterWindowText: {
     color: "#ffffff30",
     fontSize: 14,
   },
-  addedTime: {
-    top: -12,
-    position: "absolute",
-    color: colors.timerColor,
-    fontSize: 35,
-    fontWeight: "800",
-  },
+  // STRING BUILDING
   currentStringContainer: {
     width: 200,
-    height: 100,
+    height: 42,
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
+    marginTop: -25,
   },
   currentString: {
     zIndex: 2,
@@ -73,12 +125,13 @@ export default StyleSheet.create({
     borderRadius: 10,
     borderWidth: 2,
   },
+  // BOARD
   gridBoard: {
-    width: 344,
-    height: 344,
-    padding: 5,
+    width: "80%",
+    aspectRatio: 1,
+    padding: BOARD_PADDING,
     backgroundColor: colors.boardBackground,
-    borderWidth: 5,
+    borderWidth: BOARD_BORDER,
     borderColor: colors.border,
     borderRadius: 15,
     shadowColor: colors.letterColor,
@@ -91,14 +144,12 @@ export default StyleSheet.create({
     flexWrap: "wrap",
     width: "100%",
     height: "100%",
-    padding: 5,
-    gap: 5,
+    padding: GRID_PADDING,
+    gap: GRID_GAP,
   },
   gridItem: {
     alignItems: "center",
     justifyContent: "center",
-    width: itemWidth,
-    height: itemWidth,
     backgroundColor: colors.letterBackground,
     borderWidth: 3,
     borderColor: colors.letterColor,
@@ -108,6 +159,7 @@ export default StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 3,
   },
+  // LETTER STYLES
   activeGridItemIncorrect: {
     backgroundColor: colors.invalid,
     borderColor: colors.invalidBorder,
@@ -131,9 +183,17 @@ export default StyleSheet.create({
     fontSize: 55,
     color: colors.letterColor,
   },
+  // SPELLS
+  spellsContainer: {
+    width: "70%",
+    aspectRatio: 8,
+    backgroundColor: "brown",
+    alignItems: "center",
+    marginTop: 20,
+  },
   resetButton: {
-    width: "60%",
-    height: 50,
+    width: "25%",
+    height: 40,
     borderRadius: 12,
     backgroundColor: "#1a1a2e",
     overflow: "hidden",
@@ -141,7 +201,7 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "center",
-    marginTop: 20,
+    
     borderWidth: 1,
     borderColor: "#ffffff20",
   },
