@@ -4,38 +4,49 @@ import colors from "./colors";
 const itemWidth = (330 - 23 - 10) / 4;
 
 export default StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center", 
+  },
   board: {
     flex: 1,
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: colors.background,
   },
-  timerContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 15,
-    position: "relative",
+  timerTopRight: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  timer: {
+    color: colors.timerColor,
+    fontSize: 55,
+    fontWeight: "800",
+  },
+  characterWindow: {
+    width: "25%",
+    aspectRatio: 0.7,
+    backgroundColor: "#0b1522",
+    borderTopLeftRadius: 100,
+    borderTopRightRadius: 100,
+    borderWidth: 1,
+    borderColor: "#ffffff15",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.letterColor,
-    borderWidth: 5,
-    borderColor: colors.letterColor,
-    shadowColor: colors.letterColor,
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.5,
-    shadowRadius: 6,
+  },
+  characterWindowText: {
+    color: "#ffffff30",
+    fontSize: 14,
   },
   addedTime: {
     top: -12,
     position: "absolute",
     color: colors.timerColor,
     fontSize: 35,
-    fontWeight: "800",
-  },
-  timer: {
-    color: colors.timerColor,
-    fontSize: 55,
     fontWeight: "800",
   },
   currentStringContainer: {

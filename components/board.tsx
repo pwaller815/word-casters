@@ -9,48 +9,64 @@ import { useRouter } from "expo-router";
 import findAllWords from "@/assets/methods/findAllWords";
 
 export default function Board() {
+  // ─── Database ───────────────────────────────────────────
   const db = useRef<SQLite.SQLiteDatabase | null>(null);
 
+  // ─── Board / Letters ────────────────────────────────────
   const [letters, setLetters] = useState<string[]>([]);
-  const [letterUses, setLetterUses] = useState<number[]>(Array(16).fill(3));
+  const lettersRef = useRef<string[]>([]);
+  const allWords = useRef<string[]>([]);
+  const boardQueue = useRef<{ letters: string[]; allWords: string[] }[]>([]);
+
+  // ─── Current Gesture / Word Building ────────────────────
   const [currentString, setCurrentString] = useState<string>("");
   const [prevString, setPrevString] = useState<string>("");
-  const [validity, setValidity] = useState<boolean>(false);
-  const [alreadyFound, setAlreadyFound] = useState<boolean>(false);
-  const [timer, setTimer] = useState<number>(15);
-  const [addedTime, setAddedTime] = useState<number>(0);
-
-  const lettersRef = useRef<string[]>([]);
-  // const letterUsesRef = useRef<number[]>(Array(16).fill(3));
-  const changeColorRef = useRef<boolean>(false);
-  const validityRef = useRef<boolean>(false);
-  const alreadyFoundRef = useRef<boolean>(false);
+  const currentStringRef = useRef<string>("");
   const currentIndexRef = useRef<number>(-1);
   const firstIndexRef = useRef<number>(-1);
   const selectedIndicesRef = useRef<number[]>([]);
-  const currentStringRef = useRef<string>("");
+  const isDraggingRef = useRef<boolean>(false);
+
+  // ─── Word Validity ───────────────────────────────────────
+  const [validity, setValidity] = useState<boolean>(false);
+  const [alreadyFound, setAlreadyFound] = useState<boolean>(false);
+  const validityRef = useRef<boolean>(false);
+  const alreadyFoundRef = useRef<boolean>(false);
+  const changeColorRef = useRef<boolean>(false);
+  const prevColorRef = useRef<object>({});
+
+  // ─── Words Found ─────────────────────────────────────────
+  const wordsFoundRef = useRef<string[]>([]);
+  const currBoardWordsFoundRef = useRef<string[]>([]);
+
+  // ─── Timer ───────────────────────────────────────────────
+  const [timer, setTimer] = useState<number>(15);
+  const [addedTime, setAddedTime] = useState<number>(0);
   const timerRef = useRef<number>(0);
   const totalTimeRef = useRef<number>(0);
-  const wordsFoundRef = useRef<string[]>([]);
-  const isDraggingRef = useRef<boolean>(false);
-  const prevColorRef = useRef<object>({});
-  const allWords = useRef<string[]>([]);
 
-  // Reset Button
-  const [resetAvailable, setResetAvailable] = useState<boolean>(false);
-  const holdProgress = useRef(new Animated.Value(0)).current;
-  const holdAnimation = useRef<Animated.CompositeAnimation | null>(null);
+  // ─── Score ───────────────────────────────────────────────
+  const [score, setScore] = useState<number>(0);
+  const [addedScore, setAddedScore] = useState<number>(0);
+  const scoreRef = useRef<number>(0);
 
-  // Queue of boards
-  const currBoardWordsFoundRef = useRef<string[]>([]);
-  const boardQueue = useRef<{ letters: string[]; allWords: string[] }[]>([]);
-
-  const [longPressed, setLongPressed] = useState<number>(-1);
-
+  // ─── Animations ──────────────────────────────────────────
   const letterScales = useRef(new Map<number, Animated.Value>());
   const fadeString = useRef(new Animated.Value(1)).current;
   const fadeAddedTime = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(0)).current;
+
+  // ─── Long Press (Tiles) ───────────────────────────────────
+  const [longPressed, setLongPressed] = useState<number>(-1);
+
+  // ─── Reset Button ────────────────────────────────────────
+  const [resetAvailable, setResetAvailable] = useState<boolean>(false);
+  const holdProgress = useRef(new Animated.Value(0)).current;
+  const holdAnimation = useRef<Animated.CompositeAnimation | null>(null);
+
+  // ─── Removed (unused outside commented code) ─────────────
+  // const [letterUses, setLetterUses] = useState<number[]>(Array(16).fill(3));
+  // const letterUsesRef = useRef<number[]>(Array(16).fill(3));
 
   // Used for added time
   const moveUpAndFade = () => {
@@ -336,32 +352,34 @@ export default function Board() {
     }
   };
 
-  // const evaluateWord = (word: string) => {
-  //   const length = word.length;
-  //   let additionalTime = 0;
+  const evaluateWord = (word: string) => {
+    const length = word.length;
+    let points = 0;
 
-  //   switch (length) {
-  //     case 3:
-  //       additionalTime = 2;
-  //       break;
-  //     case 4:
-  //       additionalTime = 3;
-  //       break;
-  //     case 5:
-  //       additionalTime = 4;
-  //       break;
-  //     case 6:
-  //       additionalTime = 6;
-  //       break;
-  //     default:
-  //       additionalTime = 10;
-  //   }
+    switch (length) {
+      case 3:
+        points = 1;
+      case 4:
+        points = 1;
+        break;
+      case 5:
+        points = 2;
+        break;
+      case 6:
+        points = 3;
+        break;
+      case 7:
+        points = 5;
+        break;
+      default:
+        points = 11;
+    }
 
-  //   setAddedTime(additionalTime);
-  //   moveUpAndFade();
-  //   timerRef.current += additionalTime;
-  //   setTimer(timerRef.current);
-  // };
+    setAddedScore(points);
+    moveUpAndFade();
+    scoreRef.current += points;
+    setScore(scoreRef.current);
+  };
 
   // const explode = (index: number) => {
   //   console.log(
@@ -423,7 +441,7 @@ export default function Board() {
   // };
 
   const submitWord = () => {
-    // evaluateWord(currentStringRef.current);
+    evaluateWord(currentStringRef.current);
     // updateUses();
     wordsFoundRef.current.push(currentStringRef.current);
     currBoardWordsFoundRef.current.push(currentStringRef.current);
@@ -518,105 +536,105 @@ export default function Board() {
   // };
 
   return (
-    <View style={boardStyles.board}>
-      <View style={boardStyles.timerContainer}>
-        <Animated.Text
-          style={[
-            boardStyles.addedTime,
-            { transform: [{ translateY: translateY }], opacity: fadeAddedTime },
-          ]}
-        >
-          {"+" + addedTime}
-        </Animated.Text>
+    <View style={boardStyles.screen}>
+      {/* Timer top right */}
+      <View style={boardStyles.timerTopRight}>
         <Text style={boardStyles.timer}>{timer}</Text>
       </View>
-      <View style={boardStyles.currentStringContainer}>
-        {currentString !== "" && (
-          <Text style={[boardStyles.currentString, colorStyle]}>
-            {currentString}
-          </Text>
-        )}
-        {currentString === "" && prevString !== "" && (
-          <Animated.Text
-            style={[
-              boardStyles.prevString,
-              prevColorRef.current,
-              { opacity: fadeString },
-            ]}
-          >
-            {prevString}
-          </Animated.Text>
-        )}
-      </View>
-      <View style={boardStyles.gridBoard}>
-        <GestureDetector gesture={handleGesture}>
-          <View style={boardStyles.gridItems}>
-            {letters.map((character: string, index: number) => {
-              const selected =
-                selectedIndicesRef.current.includes(index) ||
-                longPressed === index;
-              const animatedStyle = selected
-                ? {
-                    transform: [
-                      {
-                        scale:
-                          letterScales.current.get(index) ||
-                          new Animated.Value(1),
-                      },
-                    ],
-                  }
-                : {};
-              return (
-                <Animated.View
-                  key={index}
-                  style={[
-                    animatedStyle,
-                    boardStyles.gridItem,
-                    selected && colorStyle,
-                  ]}
-                >
-                  <Text
-                    style={[boardStyles.letter /*, determineUses(index) */]}
-                  >
-                    {character}
-                  </Text>
-                </Animated.View>
-              );
-            })}
-          </View>
-        </GestureDetector>
-      </View>
-      <Pressable onPressIn={startHold} onPressOut={cancelHold}>
-        <View
-          style={[
-            boardStyles.resetButton,
-            !resetAvailable && boardStyles.resetButtonLocked,
-          ]}
-        >
-          <Animated.View
-            style={[
-              boardStyles.resetButtonFill,
-              !resetAvailable && boardStyles.resetButtonFillLocked,
-              {
-                width: holdProgress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: ["0%", "100%"],
-                }),
-              },
-            ]}
-          />
-          <Text
-            style={[
-              boardStyles.resetButtonText,
-              !resetAvailable && boardStyles.resetButtonTextLocked,
-            ]}
-          >
-            {resetAvailable
-              ? "Reset"
-              : `${currBoardWordsFoundRef.current.length}/5`}
-          </Text>
+
+      <View style={boardStyles.board}>
+        {/* Character window placeholder */}
+        <View style={boardStyles.characterWindow}>
+          <Text style={boardStyles.characterWindowText}>Character</Text>
         </View>
-      </Pressable>
+        <View style={boardStyles.currentStringContainer}>
+          {currentString !== "" && (
+            <Text style={[boardStyles.currentString, colorStyle]}>
+              {currentString}
+            </Text>
+          )}
+          {currentString === "" && prevString !== "" && (
+            <Animated.Text
+              style={[
+                boardStyles.prevString,
+                prevColorRef.current,
+                { opacity: fadeString },
+              ]}
+            >
+              {prevString}
+            </Animated.Text>
+          )}
+        </View>
+        <View style={boardStyles.gridBoard}>
+          <GestureDetector gesture={handleGesture}>
+            <View style={boardStyles.gridItems}>
+              {letters.map((character: string, index: number) => {
+                const selected =
+                  selectedIndicesRef.current.includes(index) ||
+                  longPressed === index;
+                const animatedStyle = selected
+                  ? {
+                      transform: [
+                        {
+                          scale:
+                            letterScales.current.get(index) ||
+                            new Animated.Value(1),
+                        },
+                      ],
+                    }
+                  : {};
+                return (
+                  <Animated.View
+                    key={index}
+                    style={[
+                      animatedStyle,
+                      boardStyles.gridItem,
+                      selected && colorStyle,
+                    ]}
+                  >
+                    <Text
+                      style={[boardStyles.letter /*, determineUses(index) */]}
+                    >
+                      {character}
+                    </Text>
+                  </Animated.View>
+                );
+              })}
+            </View>
+          </GestureDetector>
+        </View>
+        <Pressable onPressIn={startHold} onPressOut={cancelHold}>
+          <View
+            style={[
+              boardStyles.resetButton,
+              !resetAvailable && boardStyles.resetButtonLocked,
+            ]}
+          >
+            <Animated.View
+              style={[
+                boardStyles.resetButtonFill,
+                !resetAvailable && boardStyles.resetButtonFillLocked,
+                {
+                  width: holdProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ["0%", "100%"],
+                  }),
+                },
+              ]}
+            />
+            <Text
+              style={[
+                boardStyles.resetButtonText,
+                !resetAvailable && boardStyles.resetButtonTextLocked,
+              ]}
+            >
+              {resetAvailable
+                ? "Reset"
+                : `${currBoardWordsFoundRef.current.length}/5`}
+            </Text>
+          </View>
+        </Pressable>
+      </View>
     </View>
   );
 }
