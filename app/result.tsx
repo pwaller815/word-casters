@@ -8,10 +8,11 @@ import { HomeIcon, ReplayIcon } from "@/assets/fonts/icons";
 export default function Result() {
   const [wordList, setWordList] = useState<boolean>(true);
 
-  const { wordsString, allWords, totalTime } = useLocalSearchParams<{
+  const { wordsString, allWords, totalTime, score } = useLocalSearchParams<{
     wordsString: string;
     allWords: string;
     totalTime: string;
+    score: string;
   }>();
 
   const parseWordsString = (wordsString: string): string[] => {
@@ -29,7 +30,7 @@ export default function Result() {
       <View style={resultStyles.resultInfoContainer}>
         <View style={resultStyles.timeLastedContainer}>
           <Text style={resultStyles.timeLastedMessage}>
-            Score: <Text style={resultStyles.timeLasted}>{totalTime}</Text> s
+            Score: <Text style={resultStyles.timeLasted}>{score}</Text> s
           </Text>
           <Text style={resultStyles.wordsFound}>
             {words[0] === "" ? 0 : words.length} Words Found

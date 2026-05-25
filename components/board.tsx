@@ -19,7 +19,10 @@ export default function Board() {
   const [letters, setLetters] = useState<string[]>([]);
   const lettersRef = useRef<string[]>([]);
   const allWords = useRef<string[]>([]);
-  const boardQueue = useRef<{ letters: string[]; allWords: string[] }[]>([]);
+  const boardQueue = useRef<
+    { letters: string[]; allWords: string[]; wordsFound: string[] }[]
+  >([]);
+  const [boardIndex, setBoardIndex] = useState<number>(0);
 
   // ─── Current Gesture / Word Building ────────────────────
   const [currentString, setCurrentString] = useState<string>("");
@@ -132,11 +135,19 @@ export default function Board() {
     setAddedTime(timeBonus);
     moveUpAndFade();
 
-    const nextBoard = boardQueue.current.shift();
+    // Save found words to the current board in the queue before moving on
+    boardQueue.current[boardIndex] = {
+      ...boardQueue.current[boardIndex],
+      wordsFound: currBoardWordsFoundRef.current,
+    };
+
+    // Move to next board
+    const nextBoard = boardQueue.current[boardIndex + 1];
     if (nextBoard) {
       lettersRef.current = nextBoard.letters;
       setLetters(nextBoard.letters);
       allWords.current = nextBoard.allWords;
+      setBoardIndex(boardIndex + 1);
     }
 
     wordsFoundRef.current = [
@@ -151,7 +162,7 @@ export default function Board() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   };
-
+  
   const startHold = () => {
     if (!resetAvailable) return;
     holdAnimation.current = Animated.timing(holdProgress, {
@@ -213,7 +224,7 @@ export default function Board() {
   const generateAndQueueBoard = async () => {
     const letters = generateBoard();
     const words = await findAllWords(letters);
-    boardQueue.current.push({ letters, allWords: words });
+    boardQueue.current.push({ letters, allWords: words, wordsFound: [] });
   };
 
   function generateLetter(index: number): string {
@@ -248,6 +259,7 @@ export default function Board() {
           //     wordsString: JSON.stringify(wordsFoundRef.current),
           //     allWords: JSON.stringify(allWords.current),
           //     totalTime: totalTimeRef.current,
+          //     score: scoreRef.current,
           //   },
           // });
         }
@@ -261,6 +273,12 @@ export default function Board() {
       lettersRef.current = newLetters;
       setLetters(newLetters);
       allWords.current = await findAllWords(newLetters);
+
+      boardQueue.current.push({
+        letters: newLetters,
+        allWords: allWords.current,
+        wordsFound: [],
+      });
 
       generateAndQueueBoard(); // fire and forget
     };
@@ -474,15 +492,15 @@ export default function Board() {
       <View style={[boardStyles.timerTopRight, { top: insets.top }]}>
         <Text style={boardStyles.timer}>{timer}</Text>
       </View>
-      <View style={[boardStyles.opponentArea, { top: insets.top + 5 }]}>
+      {/* <View style={[boardStyles.opponentArea, { top: insets.top + 5 }]}>
         <View style={boardStyles.opponentCharacterWindow}>
           <Text style={boardStyles.opponentCharacterWindowText}>Character</Text>
         </View>
         <View style={boardStyles.opponentBoard}>
           <Text style={boardStyles.opponentBoardText}>Board</Text>
         </View>
-      </View>
-      <View style={[boardStyles.playerArea, { bottom: insets.bottom + 10}]}>
+      </View> */}
+      <View style={[boardStyles.playerArea, { bottom: insets.bottom + 10 }]}>
         {/* Character window placeholder */}
         <View style={boardStyles.characterWindow}>
           <Text style={boardStyles.characterWindowText}>Character</Text>
